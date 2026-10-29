@@ -16,13 +16,14 @@ namespace TapDefense
         }
         private readonly List<EnemyView> active;
         private int nextSpawnId;
-        private readonly int[] lightningIds = new int[9];
         private readonly ComponentPool<EnemyView> pool;
         private readonly Queue<Blast> chains;
         private readonly GameConfig config;
         private readonly FeedbackSystem feedback;
         private RunModel run;
         private readonly Action crystalHit;
+        public Vector2 HeroPosition { get; set; } = new Vector2(0,-4.59f);
+        public float AssemblyFeetY => HeroPosition.y-0.49f+1.7f;
         public float Top { get; set; } = 9f;
         public float Bottom { get; set; } = -9f;
         public int AliveCount => active.Count;
@@ -51,7 +52,18 @@ namespace TapDefense
         {
             if (kind == EnemyKind.Boss || active.Count - AliveBosses - AliveSummons >= settings.maxAlive) return false;
             var definition = config.Enemy(kind);
-            Vector2 point = new Vector2(Random.Range(-config.arenaHalfWidth,config.arenaHalfWidth),Top + definition.radius);
+            float x = 0;
+            // Avoid overlapping freshly spawned bodies; defer to the next spawn tick if the top is crowded.
+            bool clear = false;
+            for (int attempt = 0; attempt < 8 && !clear; attempt++)
+            {
+                x = Random.Range(-config.arenaHalfWidth + definition.radius, config.arenaHalfWidth - definition.radius); clear = true;
+                foreach (var enemy in active)
+                    if (Vector2.Distance(enemy.Position, new Vector2(x,Top + definition.radius)) < enemy.Definition.radius + definition.radius + 0.08f)
+                    { clear = false; break; }
+            }
+            if (!clear) return false;
+            Vector2 point = new Vector2(x,Top + definition.radius);
             return SpawnAt(kind,settings,point) != null;
         }
         public EnemyView SpawnBoss(SpawnSettings settings, float anchor)
@@ -70,17 +82,41 @@ namespace TapDefense
         }
         public void Step(float dt, float elapsed)
         {
+            if(run.State!=RunState.Combat)return;
             for (int i = active.Count - 1; i >= 0; i--)
             {
-                var enemy = active[i]; float burn = enemy.Step(dt);
-                if (burn > 0 && DamageAt(i, burn, 0, DamageSource.Burn).killed) continue;
-                if (enemy.Definition.kind == EnemyKind.Boss || enemy.Position.y + enemy.Definition.radius >= Bottom) continue;
-                run.DamagePlayer(enemy.Definition.contactDamage); crystalHit();
-                Despawn(i);
+                var enemy = active[i];enemy.AssemblyFeetY=AssemblyFeetY;enemy.HeroFeet=HeroPosition+Vector2.down*0.49f;
+                enemy.Step(dt);
+                if(enemy.StepMelee(dt)) { run.DamagePlayer(enemy.Definition.contactDamage);crystalHit(); }
                 if (run.State == RunState.Lost) break;
+            }
+            for(int pass=0;pass<2;pass++)
+            for(int i=0;i<active.Count;i++)
+            for(int j=i+1;j<active.Count;j++)
+            {
+                var a=active[i];var b=active[j];if(!a.HoldingLine||!b.HoldingLine)continue;
+                float gap=(a.Definition.radius+b.Definition.radius)*0.7f+0.04f;
+                float dx=b.Position.x-a.Position.x;if(Mathf.Abs(dx)>=gap)continue;
+                float push=(gap-Mathf.Abs(dx))*0.5f;float sign=dx==0?(a.SpawnId<b.SpawnId?1:-1):Mathf.Sign(dx);
+                a.transform.position=new Vector3(Mathf.Clamp(a.Position.x-sign*push,-config.arenaHalfWidth+a.Definition.radius,config.arenaHalfWidth-a.Definition.radius),a.Position.y,0);
+                b.transform.position=new Vector3(Mathf.Clamp(b.Position.x+sign*push,-config.arenaHalfWidth+b.Definition.radius,config.arenaHalfWidth-b.Definition.radius),b.Position.y,0);
             }
             int budget = config.chainBlastsPerFrame;
             while (run.State == RunState.Combat && budget-- > 0 && chains.Count > 0) ApplyBlast(chains.Dequeue());
+        }
+        public bool TryFindTarget(Vector2 origin, FogOfWar fog, out Vector2 point, float laneRadius = -1)
+        {
+            point = default; float nearest = float.PositiveInfinity; bool found = false;
+            foreach (var enemy in active)
+            {
+                if (enemy.Health <= 0 || enemy.Position.y <= origin.y + 0.7f || enemy.Position.y > Top
+                    || (fog != null && fog.IsHidden(enemy.Position, enemy.Definition.radius))) continue;
+                if (laneRadius >= 0 && Mathf.Abs(enemy.Position.x-origin.x) > enemy.Definition.radius+laneRadius) continue;
+                float distance = (enemy.Position - origin).sqrMagnitude;
+                if (distance >= nearest) continue;
+                nearest = distance; point = enemy.Position; found = true;
+            }
+            return found;
         }
         // Swept segment; stable spawn IDs prevent piercing the same pooled instance twice.
         public bool HitBullet(Vector2 from, Vector2 to, ArrowAttack attack, int[] hitIds, int hitCount, out int id)
@@ -91,18 +127,22 @@ namespace TapDefense
                 var enemy = active[i]; bool seen = false;
                 for (int h = 0; h < hitCount; h++) if (hitIds[h] == enemy.SpawnId) { seen = true; break; }
                 if (seen) continue;
-                float reach = attack.radius + enemy.Definition.radius, dx = Mathf.Abs(enemy.Position.x - from.x);
-                if (dx > reach) continue;
-                float half = Mathf.Sqrt(Mathf.Max(0, reach * reach - dx * dx));
-                float entry = enemy.Position.y - half;
-                if (enemy.Position.y + half < from.y || entry > to.y) continue;
+                float reach = attack.radius + enemy.Definition.radius;
+                Vector2 delta = to - from; float length = delta.magnitude;
+                if (length < 0.00001f) continue;
+                Vector2 direction = delta / length, offset = enemy.Position - from;
+                float projection = Vector2.Dot(offset, direction);
+                float perpendicularSq = Mathf.Max(0, offset.sqrMagnitude - projection * projection);
+                if (perpendicularSq > reach * reach) continue;
+                float half = Mathf.Sqrt(Mathf.Max(0, reach * reach - perpendicularSq));
+                float entry = Mathf.Max(0, projection - half);
+                if (projection + half < 0 || entry > length) continue;
                 if (entry < nearest) { nearest = entry; target = i; }
             }
             if (target < 0) return false;
             id = active[target].SpawnId; Vector2 point = active[target].Position;
             float damage = attack.damage * (Random.value < attack.criticalChance ? attack.criticalMultiplier : 1);
             DamageResult result = DamageAt(target, damage, 0, DamageSource.Arrow);
-            if (!result.blocked) ApplyElement(attack.element, point, attack.damage, id);
             return true;
         }
         private DamageResult DamageAt(int index, float damage, int depth, DamageSource source = DamageSource.Area)
@@ -118,41 +158,7 @@ namespace TapDefense
                 chains.Enqueue(new Blast { position = point, radius = run.ChainRadius, damage = run.ChainDamage, depth = depth + 1 });
             return result;
         }
-        private void ApplyElement(ElementKind kind, Vector2 point, float damage, int primaryId)
-        {
-            if (kind == ElementKind.None) return;
-            ElementDefinition element = null;
-            foreach (var candidate in config.elements) if (candidate.kind == kind) { element = candidate; break; }
-            if (element == null) return;
-            if (kind == ElementKind.Lightning)
-            {
-                lightningIds[0] = primaryId;
-                for (int hop = 0; hop < element.lightningTargets; hop++)
-                {
-                    int target = -1; float nearest = element.radius * element.radius;
-                    for (int i = 0; i < active.Count; i++)
-                    {
-                        bool seen = false;
-                        for (int h = 0; h <= hop; h++) if (lightningIds[h] == active[i].SpawnId) { seen = true; break; }
-                        float distance = (active[i].Position - point).sqrMagnitude;
-                        if (!seen && distance <= nearest) { nearest = distance; target = i; }
-                    }
-                    if (target < 0) break;
-                    point = active[target].Position; lightningIds[hop + 1] = active[target].SpawnId;
-                    DamageAt(target, damage * element.damageFraction, 0);
-                }
-                return;
-            }
-            for (int i = active.Count - 1; i >= 0; i--)
-            {
-                var enemy = active[i]; float reach = element.radius + enemy.Definition.radius;
-                if ((enemy.Position - point).sqrMagnitude > reach * reach) continue;
-                if (kind == ElementKind.Fire) enemy.Burn(damage * element.burnDamagePerSecond, element.duration);
-                if (kind == ElementKind.Ice) enemy.Chill(element);
-                if (kind == ElementKind.Wind) enemy.Pull(point, element);
-                if (enemy.SpawnId != primaryId && element.damageFraction > 0) DamageAt(i, damage * element.damageFraction, 0);
-            }
-        }
+
         private void ApplyBlast(Blast blast)
         {
             feedback.Blast(blast.position, blast.radius, true);

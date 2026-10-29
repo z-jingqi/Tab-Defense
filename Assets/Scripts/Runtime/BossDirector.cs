@@ -42,7 +42,7 @@ namespace TapDefense
                 profile = config.bossProfiles[encounter++ % config.bossProfiles.Length]; skillIndex = 0;
                 schedule.Spawned(); phase = Phase.Wait; timer = config.bosses.initialSkillDelay;
             }
-            if (!boss || !boss.Arrived || boss.Frozen) return;
+            if (!boss || !boss.Arrived) return;
             if (boss.Vitals.StaggerLeft > 0)
             { phase = Phase.Wait; timer = config.bosses.skillInterval; boss.BossAction = ""; return; }
             if (phase == Phase.Heal)

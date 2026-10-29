@@ -16,13 +16,31 @@ namespace TapDefense
         public int ExperienceReward { get; private set; }
         public Vector2 Position => transform.position;
         public bool Arrived => Definition.kind == EnemyKind.Boss && Position.y <= bossAnchor + 0.01f;
-        public bool Frozen => frozen > 0;
+        public bool HoldingLine { get; private set; }
+        public float AssemblyFeetY { get; set; } = -3.4f;
+        public Vector2 HeroFeet { get; set; }
+        public Vector2 Feet => Position + Vector2.down * (Definition.radius * 0.92f);
+        public float AttackCooldown { get; private set; }
+        public bool WindingUp => windup > 0;
+        private float windup, slashLeft;
+        private SpriteRenderer attackSlash;
+        public bool CanReachHero => Mathf.Abs(Feet.x-HeroFeet.x) <= 0.65f && Vector2.Distance(Feet,HeroFeet) <= 1.95f;
+        public bool StepMelee(float dt)
+        {
+            if (Definition.kind == EnemyKind.Boss || !HoldingLine || Vitals.StaggerLeft > 0 || Health <= 0) return false;
+            AttackCooldown = Mathf.Max(0,AttackCooldown-dt);
+            if (windup > 0)
+            {
+                if (!CanReachHero) { windup=0; warning=false; AttackCooldown=0.35f; return false; }
+                windup=Mathf.Max(0,windup-dt);warning=windup>0;
+                if (windup==0) { AttackCooldown=1.25f;slashLeft=0.16f;RefreshVisuals();return CanReachHero; }
+            }
+            else if(AttackCooldown<=0 && CanReachHero) { windup=0.3f;warning=true; }
+            return false;
+        }
         public string BossAction { get; set; } = "";
-        private float burnLeft, burnDps, slowLeft, slow = 1, frozen, pullLeft, pullSpeed;
-        private int chill;
-        private float burnBank, burnTick, routeClock, bossAnchor, halfWidth;
-        private Vector2 pullPoint;
-        private SpriteRenderer body, hpBack, hpFill, shieldFill;
+        private float bossAnchor, halfWidth;
+        private SpriteRenderer body, hpBack, hpFill, shieldFill, groundShadow;
         private TextMesh status;
         private float flash, phase;
         private float hitFlashDuration = 0.12f, hitFlashStrength = 0.18f, appliedFlash = -1;
@@ -35,12 +53,19 @@ namespace TapDefense
         public void Prepare(Sprite square, Material spriteMaterial = null, float flashDuration = 0.12f, float flashStrength = 0.18f)
         {
             body = GetComponent<SpriteRenderer>();
+            groundShadow = Visual("Ground Shadow", square, new Color(0.03f,0.07f,0.04f,0.22f), -20);
+            groundShadow.transform.localPosition = new Vector3(0,-0.46f,0);
+            groundShadow.transform.localScale = new Vector3(0.82f,0.16f,1);
             if (spriteMaterial) body.sharedMaterial = spriteMaterial;
             hitFlashDuration = Mathf.Clamp(flashDuration, 0.05f, 0.3f);
             hitFlashStrength = Mathf.Clamp(flashStrength, 0, 0.35f);
             hitProperties = new MaterialPropertyBlock();
+            attackSlash = Visual("Melee Slash",square,new Color(1,0.8f,0.3f,0.9f),20);
+            attackSlash.transform.localPosition = new Vector3(0,-0.72f,0);
+            attackSlash.transform.localScale = new Vector3(0.10f,0.65f,1);
+            attackSlash.transform.localRotation=Quaternion.Euler(0,0,-35);attackSlash.enabled=false;
             hpBack = Visual("Health Background",square,new Color(0.05f,0.07f,0.1f),7);
-            hpFill = Visual("Health",square,new Color(0.4f,1,0.7f),8);
+            hpFill = Visual("Health",square,new Color(1f,0.2f,0.25f),8);
             shieldFill = Visual("Shield",square,new Color(0.4f,0.7f,1),9);
             var go = new GameObject("Enemy State"); go.transform.SetParent(transform,false);
             status = go.AddComponent<TextMesh>(); status.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -56,8 +81,8 @@ namespace TapDefense
         public void Spawn(EnemyDefinition definition, SpawnSettings settings, Vector2 position, int spawnId,
             float width = 4.5f, bool summoned = false, int experience = -1, float anchor = 0)
         {
-            SpawnId = spawnId; burnLeft = burnDps = slowLeft = frozen = pullLeft = 0; slow = 1; chill = 0;
-            burnBank = burnTick = routeClock = 0; warning = false; bossAnchor = anchor; halfWidth = width;
+            HoldingLine=false;windup=slashLeft=0;AttackCooldown=0;
+            SpawnId=spawnId;warning=false;bossAnchor=anchor;halfWidth=width;
             Summoned = summoned; ExperienceReward = experience >= 0 ? experience : definition.experience;
             if (!body) body = GetComponent<SpriteRenderer>();
             Definition = definition; Vitals.Reset(definition.health * settings.healthMultiplier);
@@ -71,19 +96,24 @@ namespace TapDefense
         public float Step(float dt)
         {
             Vector2 point = Position;
-            // Freezing pauses the boss's defensive timers and heal channel as well as movement.
-            if (!Frozen) Vitals.Step(dt);
-            burnBank += Mathf.Min(burnLeft,dt) * burnDps; burnLeft = Mathf.Max(0,burnLeft-dt);
-            if (burnLeft == 0) burnDps = 0;
-            burnTick += dt; float burn = 0;
-            if (burnTick >= 0.25f || burnLeft <= 0) { burn = burnBank; burnBank = 0; burnTick = 0; }
-            float movementDt = Frozen || Vitals.StaggerLeft > 0 ? 0 : dt * (slowLeft > 0 ? slow : 1);
+            Vitals.Step(dt);
+            float movementDt=Vitals.StaggerLeft>0?0:dt;
             if (Definition.kind == EnemyKind.Boss)
                 point.y = Mathf.MoveTowards(point.y,bossAnchor,Speed*movementDt);
             else
             {
-                RouteStep route = EnemyRoutes.Advance(Definition.route,ref routeClock,movementDt); warning = route.warning;
-                point += new Vector2(route.horizontal,-Speed*route.verticalMultiplier*movementDt);
+                float centerLine=AssemblyFeetY+Definition.radius*0.92f;
+                if (!HoldingLine)
+                {
+                    point.y=Mathf.MoveTowards(point.y,centerLine,Speed*movementDt);
+                    HoldingLine=point.y<=centerLine+0.001f;
+                }
+                else
+                {
+                    point.y=centerLine;
+                    if(windup<=0 && Mathf.Abs(point.x-HeroFeet.x)>0.4f)
+                        point.x=Mathf.MoveTowards(point.x,HeroFeet.x,Speed*movementDt);
+                }
             }
             // Only self-directed locomotion advances walking frames. Wind-up, waiting at
             // the boss anchor and forced displacement must not make a stationary enemy walk.
@@ -91,12 +121,11 @@ namespace TapDefense
             locomotionPoint.x = Mathf.Clamp(locomotionPoint.x,-halfWidth+Definition.radius,halfWidth-Definition.radius);
             if (Definition.kind == EnemyKind.Boss) locomotionPoint.y = Mathf.Max(bossAnchor,locomotionPoint.y);
             bool locomoting = movementDt > 0 && (locomotionPoint - Position).sqrMagnitude > 0;
-            if (pullLeft > 0) point = Vector2.MoveTowards(point,pullPoint,pullSpeed*Mathf.Min(dt,pullLeft));
             point.x = Mathf.Clamp(point.x,-halfWidth+Definition.radius,halfWidth-Definition.radius);
             if (Definition.kind == EnemyKind.Boss) point.y = Mathf.Max(bossAnchor,point.y);
+            if(Definition.kind!=EnemyKind.Boss) point.y=Mathf.Max(point.y,AssemblyFeetY+Definition.radius*0.92f);
             transform.position = point;
-            frozen = Mathf.Max(0,frozen-dt); pullLeft = Mathf.Max(0,pullLeft-dt);
-            slowLeft = Mathf.Max(0,slowLeft-dt); if (slowLeft == 0) chill = 0;
+            slashLeft=Mathf.Max(0,slashLeft-dt);
             body.sprite = movementAnimation.Step(locomoting ? movementDt : 0);
             if (movementAnimation.HasAnimation || !Definition.swayWhileMoving) transform.rotation = Quaternion.identity;
             else
@@ -106,7 +135,7 @@ namespace TapDefense
             }
             flash = Mathf.Max(0,flash-dt);
             ApplyHitFeedback();
-            RefreshVisuals(); return burn;
+            RefreshVisuals(); return 0;
         }
         private void ApplyHitFeedback()
         {
@@ -123,11 +152,16 @@ namespace TapDefense
         public void RefreshVisuals()
         {
             if (!hpBack) return;
-            bool hp = Health < MaxHealth && Health > 0;
+            // Keep painted sprites upright; lower feet occlude higher feet in the 2D ground plane.
+            int order = 100 - Mathf.RoundToInt(Position.y * 10);
+            body.sortingOrder = order; hpBack.sortingOrder = order+1; hpFill.sortingOrder = order+2;
+            attackSlash.sortingOrder=order+5;attackSlash.enabled=slashLeft>0;
+            shieldFill.sortingOrder = order+3; status.GetComponent<MeshRenderer>().sortingOrder = order+4;
+            bool hp = Health > 0;
             hpBack.enabled = hp; hpFill.enabled = hp; shieldFill.enabled = Vitals.Shield > 0;
-            hpBack.transform.localPosition = new Vector3(0,0.7f,0); hpBack.transform.localScale = new Vector3(1.25f,0.1f,1);
-            hpFill.transform.localPosition = new Vector3(-(1-Health/MaxHealth)*0.625f,0.7f,0);
-            hpFill.transform.localScale = new Vector3(1.25f*Health/MaxHealth,0.08f,1);
+            hpBack.transform.localPosition = new Vector3(0,0.64f,0); hpBack.transform.localScale = new Vector3(0.72f,0.1f,1);
+            hpFill.transform.localPosition = new Vector3(-(1-Health/MaxHealth)*0.36f,0.64f,0);
+            hpFill.transform.localScale = new Vector3(0.72f*Health/MaxHealth,0.08f,1);
             shieldFill.transform.localPosition = new Vector3(0,0.85f,0);
             shieldFill.transform.localScale = new Vector3(Vitals.MaxShield>0 ? 1.25f*Vitals.Shield/Vitals.MaxShield : 0,0.09f,1);
             status.transform.localPosition = new Vector3(0,0.95f,0);
@@ -138,20 +172,9 @@ namespace TapDefense
             // Avoid assigning TextMesh.text when unchanged (mesh rebuilds are relatively expensive).
             if (status.text != label) status.text = label;
         }
-        public void Burn(float dps, float duration)
-        { burnDps = Mathf.Max(burnDps,dps); burnLeft = Mathf.Max(burnLeft,duration); }
-        public void Chill(ElementDefinition element)
-        {
-            if (Vitals.Shield > 0) return;
-            float strength = 1-Definition.controlResistance;
-            slow = 1-(1-element.slowMultiplier)*strength; slowLeft = element.duration;
-            if (frozen <= 0 && ++chill >= element.freezeHits) { chill = 0; frozen = element.freezeSeconds*strength; }
-        }
-        public void Pull(Vector2 point, ElementDefinition element)
-        {
-            if (Vitals.Shield > 0) return;
-            pullPoint = point; pullLeft = element.duration; pullSpeed = element.pullSpeed*(1-Definition.controlResistance);
-        }
+
+
+
         public DamageResult Receive(float damage, DamageSource source)
         { var result = Vitals.Receive(damage,source); flash = hitFlashDuration; ApplyHitFeedback(); RefreshVisuals(); return result; }
     }

@@ -95,88 +95,8 @@ namespace TapDefense.Tests
             Assert.IsNotNull(clip.ValidateData());
         }
 
-        [Test]
-        public void EnemyAnimationPausesForFreezeAndResetsForPoolReuse()
-        {
-            var go = new GameObject("Animated enemy", typeof(SpriteRenderer), typeof(EnemyView));
-            try
-            {
-                var view = go.GetComponent<EnemyView>();
-                var body = go.GetComponent<SpriteRenderer>();
-                var definition = new EnemyDefinition { sprite = first, movementAnimation = clip };
-                view.Spawn(definition, new SpawnSettings(), Vector2.zero, 1);
-                view.Step(0.25f);
-                Assert.AreSame(second, body.sprite);
-                Assert.AreEqual(Quaternion.identity, go.transform.rotation);
-                var ice = ElementDefinition.Defaults()[2];
-                view.Chill(ice); view.Chill(ice); view.Chill(ice);
-                Assert.IsTrue(view.Frozen);
-                view.Step(0.1f);
-                Assert.AreSame(second, body.sprite);
-                view.Spawn(definition, new SpawnSettings(), Vector2.zero, 2);
-                Assert.AreSame(first, body.sprite);
-                Assert.IsFalse(view.Frozen);
-                definition.movementAnimation = null;
-                view.Spawn(definition, new SpawnSettings(), Vector2.zero, 3);
-                view.Step(0.25f);
-                Assert.AreSame(first, body.sprite);
-            }
-            finally { Object.DestroyImmediate(go); }
-        }
 
-        [Test]
-        public void EnemySlowChangesAnimationRateAndStaggerPausesIt()
-        {
-            var go = new GameObject("Animated enemy", typeof(SpriteRenderer), typeof(EnemyView));
-            try
-            {
-                var view = go.GetComponent<EnemyView>();
-                var body = go.GetComponent<SpriteRenderer>();
-                var definition = new EnemyDefinition { sprite = first, movementAnimation = clip };
-                view.Spawn(definition, new SpawnSettings(), Vector2.zero, 1);
-                var ice = ElementDefinition.Defaults()[2];
-                ice.slowMultiplier = 0.5f;
-                view.Chill(ice);
-                view.Step(0.25f);
-                Assert.AreSame(first, body.sprite);
-                view.Step(0.25f);
-                Assert.AreSame(second, body.sprite);
-                view.Vitals.RaiseShield(1, 1, 1);
-                view.Receive(1, DamageSource.Arrow);
-                view.Step(0.25f);
-                Assert.AreSame(second, body.sprite);
-            }
-            finally { Object.DestroyImmediate(go); }
-        }
-        [TestCase(RouteKind.StopGo)]
-        [TestCase(RouteKind.Dash)]
-        public void RouteStopOrWindupHoldsWalkingFrameEvenWhenPulled(RouteKind kind)
-        {
-            var go = new GameObject("Waiting enemy", typeof(SpriteRenderer), typeof(EnemyView));
-            try
-            {
-                var view = go.GetComponent<EnemyView>();
-                var body = go.GetComponent<SpriteRenderer>();
-                var definition = new EnemyDefinition {
-                    sprite = first, movementAnimation = clip,
-                    route = new RouteDefinition { kind = kind, moveSeconds = 0.4f,
-                        stopSeconds = 1, cruiseSeconds = 0.4f, windupSeconds = 1 }
-                };
-                view.Spawn(definition, new SpawnSettings(), Vector2.zero, 1);
-                view.Step(0.25f);
-                Assert.AreSame(second, body.sprite);
-                Vector2 stoppedAt = view.Position;
-                view.Step(0.25f);
-                Assert.AreEqual(stoppedAt, view.Position);
-                Assert.AreSame(second, body.sprite);
-                var wind = ElementDefinition.Defaults()[3];
-                view.Pull(new Vector2(2, stoppedAt.y), wind);
-                view.Step(0.25f);
-                Assert.Greater(view.Position.x, stoppedAt.x);
-                Assert.AreSame(second, body.sprite);
-            }
-            finally { Object.DestroyImmediate(go); }
-        }
+
 
         [Test]
         public void AnchoredBossHoldsWalkingFrame()

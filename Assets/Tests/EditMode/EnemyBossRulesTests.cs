@@ -17,14 +17,14 @@ namespace TapDefense.Tests
         [Test] public void ShieldTimeoutDoesNotStaggerAndTakesPriorityOverArmor()
         {
             var v = new EnemyVitals(); v.Reset(100); v.RaiseArmor(3); v.RaiseShield(20,1,1.5f);
-            v.Receive(5,DamageSource.Burn); Assert.AreEqual(15,v.Shield); Assert.AreEqual(3,v.Armor);
+            v.Receive(5,DamageSource.Area); Assert.AreEqual(15,v.Shield); Assert.AreEqual(3,v.Armor);
             v.Step(1); Assert.AreEqual(0,v.Shield); Assert.AreEqual(0,v.StaggerLeft);
             v.Receive(5,DamageSource.Arrow); Assert.AreEqual(2,v.Armor); Assert.AreEqual(100,v.Health);
         }
         [Test] public void ArmorOnlyLosesLayersToDirectArrows()
         {
             var v = new EnemyVitals(); v.Reset(100); v.RaiseArmor(2); v.RaiseArmor(1);
-            Assert.IsTrue(v.Receive(5,DamageSource.Burn).blocked);
+            Assert.IsTrue(v.Receive(5,DamageSource.Area).blocked);
             Assert.IsTrue(v.Receive(5,DamageSource.Area).blocked); Assert.AreEqual(2,v.Armor);
             v.Receive(500,DamageSource.Arrow); v.Receive(500,DamageSource.Arrow);
             Assert.AreEqual(100,v.Health); Assert.AreEqual(0,v.Armor);
@@ -34,7 +34,7 @@ namespace TapDefense.Tests
         {
             var v = new EnemyVitals(); v.Reset(100); v.Receive(50,DamageSource.Arrow);
             v.BeginHeal(3,0.06f,0.08f,1.5f); v.Step(1); Assert.AreEqual(56,v.Health,.001f);
-            v.Receive(7,DamageSource.Burn); Assert.IsTrue(v.Healing);
+            v.Receive(7,DamageSource.Area); Assert.IsTrue(v.Healing);
             Assert.IsTrue(v.Receive(1,DamageSource.Area).interrupted); Assert.IsFalse(v.Healing);
             float hp = v.Health; v.Step(4); Assert.AreEqual(hp,v.Health);
             v.BeginHeal(3,1,0.08f,1.5f); v.Step(10); Assert.AreEqual(100,v.Health); Assert.IsFalse(v.Healing);
@@ -61,14 +61,7 @@ namespace TapDefense.Tests
             var warning = EnemyRoutes.Advance(route,ref clock,1.1f); Assert.IsTrue(warning.warning); Assert.AreEqual(0,warning.verticalMultiplier);
             var dash = EnemyRoutes.Advance(route,ref clock,0.7f); Assert.IsFalse(dash.warning); Assert.Greater(dash.verticalMultiplier,1);
         }
-        [Test] public void SineAndStopGoRemainDeterministicWhenTimeIsFrozen()
-        {
-            var route = new RouteDefinition { kind=RouteKind.Sine }; float clock=0;
-            var step=EnemyRoutes.Advance(route,ref clock,route.period/4);Assert.AreEqual(route.amplitude,step.horizontal,.001f);
-            Assert.AreEqual(0,EnemyRoutes.Advance(route,ref clock,0).horizontal,.001f);
-            route.kind=RouteKind.StopGo;clock=route.moveSeconds;
-            Assert.AreEqual(0,EnemyRoutes.Advance(route,ref clock,0.1f).verticalMultiplier);
-        }
+
         [Test] public void ScheduleHasOneBossAndWaitsAfterDeath()
         {
             var schedule = new BossSchedule(60);Assert.IsFalse(schedule.Step(59,false,90));
@@ -94,20 +87,6 @@ namespace TapDefense.Tests
             }
             finally { Object.DestroyImmediate(config); }
         }
-        [Test] public void FrozenBossPausesHealAndShieldRejectsNewControl()
-        {
-            var go=new GameObject("Test Boss",typeof(SpriteRenderer),typeof(EnemyView));
-            try
-            {
-                var view=go.GetComponent<EnemyView>();
-                view.Spawn(new EnemyDefinition {kind=EnemyKind.Boss,health=100,controlResistance=0.6f},new SpawnSettings(),Vector2.zero,1);
-                view.Receive(50,DamageSource.Arrow);
-                var ice=ElementDefinition.Defaults()[2];view.Chill(ice);view.Chill(ice);view.Chill(ice);Assert.IsTrue(view.Frozen);
-                view.Vitals.BeginHeal(3,0.06f,0.08f,1.5f);view.Step(0.1f);Assert.AreEqual(50,view.Health);
-                view.Step(1);view.Vitals.RaiseShield(180,7,1.5f);
-                view.Chill(ice);view.Chill(ice);view.Chill(ice);Assert.IsFalse(view.Frozen);
-            }
-            finally { Object.DestroyImmediate(go); }
-        }
+
     }
 }

@@ -75,9 +75,10 @@ namespace TapDefense
             if (SoundEnabled && Time.unscaledTime >= killSoundReady)
             { audioSource.PlayOneShot(killClip, 0.38f); killSoundReady = Time.unscaledTime + 0.075f; }
         }
-        public void PlayerHit(float y)
+        public void PlayerHit(float y) { PlayerHit(new Vector2(0,y)); }
+        public void PlayerHit(Vector2 point)
         {
-            Emit(config.ringSprite, new Vector2(0,y), new Color(1, 0.3f, 0.4f), 0.6f, 1.9f, 0.3f, Vector2.zero);
+            Emit(config.ringSprite, point, new Color(1, 0.3f, 0.4f), 0.6f, 1.9f, 0.3f, Vector2.zero);
             if (SoundEnabled) audioSource.PlayOneShot(hurtClip, 0.65f);
         }
         public void Upgrade()

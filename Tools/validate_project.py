@@ -19,10 +19,12 @@ def check(name,condition):
 
 
 def documents(path):
-    text=path.read_text()
+    text=path.read_text(encoding="utf8")
     ids=re.findall(r"^--- !u!\d+ &(-?\d+)",text,re.M)
     clean=re.sub(r"^%.*\n","",text,flags=re.M)
     clean=re.sub(r"^--- !u!\d+ &-?\d+","---",clean,flags=re.M)
+    # Unity serializes enum arrays as little-endian 32-bit hex blobs.
+    clean=re.sub(r'^(\s+skills:) ([0-9a-fA-F]+)$',r'\1 "\2"',clean,flags=re.M)
     parsed=list(yaml.safe_load_all(clean))
     check("Unique local file IDs: "+path.name,len(ids)==len(set(ids)) and len(ids)==len(parsed))
     return {int(identifier):next(iter(doc.values())) for identifier,doc in zip(ids,parsed)}
@@ -94,15 +96,12 @@ def main():
     spawn=config['spawning']
     check("Valid endless spawning",spawn['spawnInterval']>0 and 0<spawn['maxAlive']<=config['enemyPoolSize'])
     check("Valid bullets",config['bulletSpeed']>0 and config['bulletRadius']>0 and config['bulletPoolSize']>0)
-    check("Four unique elements",len(config['elements'])==4 and {e['kind'] for e in config['elements']}=={0,1,2,3})
-    for e in config['elements']:
-        check("Valid element charges "+str(e['kind']),e['capacity']>0 and e['rechargeSeconds']>0 and e['radius']>0 and 1<=e['lightningTargets']<=8)
     check("Arrow sprite assigned",config['arrowSprite']['fileID']==21300000)
     check("Bounded burst pool",config['pendingBurstLimit']>0 and config['progression']['maxArrows']<=config['bulletPoolSize'])
     check("Five unique enemy archetypes",len(config['enemies'])==5 and {e['kind'] for e in config['enemies']}==set(range(5)))
     for enemy in config['enemies']:
         route=enemy['route']
-        check("Valid enemy behavior "+str(enemy['kind']),enemy['availableAfterSeconds']>=0 and enemy['spawnWeight']>=0 and 0<=enemy['controlResistance']<=1 and 0<=enemy['rank']<=2)
+        check("Valid enemy behavior "+str(enemy['kind']),enemy['availableAfterSeconds']>=0 and enemy['spawnWeight']>=0 and 0<=enemy['rank']<=2)
         check("Valid route "+str(enemy['kind']),route['kind'] in range(4) and route['amplitude']>=0 and all(route[key]>0 for key in ['period','moveSeconds','cruiseSeconds','windupSeconds','dashSeconds','dashMultiplier']) and route['stopSeconds']>=0)
         check("Valid enemy attributes "+str(enemy['kind']),all(enemy[key]>0 for key in ['health','speed','radius','contactDamage']) and enemy['experience']>=0)
     check("Opening enemy exists",any(e['kind']!=3 and e['availableAfterSeconds']==0 and e['spawnWeight']>0 for e in config['enemies']))
@@ -114,15 +113,19 @@ def main():
     check("Bounded summons",0<boss['summonCount']<=32 and boss['summonAliveLimit']>0 and boss['summonKind'] in [0,1,2,4] and boss['summonExperience']>=0)
     check("Valid defenses",boss['shieldHealth']>0 and boss['shieldSeconds']>0 and 0<boss['armorLayers']<=100 and boss['staggerSeconds']>0 and 0<boss['healInterruptFraction']<=1 and 0<boss['healPerSecond']<=1 and boss['healSeconds']>0)
     profiles=config['bossProfiles']
+    for profile in profiles:
+        skills=profile['skills']
+        if isinstance(skills,str):
+            data=bytes.fromhex(skills)
+            check("Valid serialized boss skill array",bool(data) and len(data)%4==0)
+            profile['skills']=[int.from_bytes(data[i:i+4],"little") for i in range(0,len(data),4)]
     check("All five boss skills configured",{s for profile in profiles for s in profile['skills']}==set(range(5)))
     for profile in profiles:
         check("Nonempty boss profile: "+profile['title'],bool(profile['title']) and bool(profile['skills']) and all(s in range(5) for s in profile['skills']))
     square=Image.open(ASSETS/'Art/Square.png')
     check("Cloud masking sprite is fully opaque",square.getchannel('A').getextrema()==(255,255))
-    for name in ['README','COMBAT_AND_ELEMENTS','ENEMIES','BOSSES_AND_FOG','ACCEPTANCE']:
+    for name in ['README','COMBAT','ENEMIES','BOSSES_AND_FOG','ACCEPTANCE']:
         check("Design document exists: "+name,(ROOT/'Docs/Design'/(name+'.md')).is_file())
-    for field in ['battlefieldSprite', 'fireIcon', 'lightningIcon', 'iceIcon', 'windIcon']:
-        check("Battlefield art assigned: "+field, config[field]['fileID']==21300000)
     check("Bounded soft hit flash",0.05<=config['hitFlashDuration']<=0.3 and 0<=config['hitFlashStrength']<=0.35 and config['enemySpriteMaterial']['fileID']==2100000)
     soldier_guid=config['enemies'][0]['sprite']['guid']
     for enemy in config['enemies']:
@@ -135,12 +138,10 @@ def main():
         check("Single sprite import: "+path.name,importer['textureType']==8 and importer['spriteMode']==1)
         check("Bounded sprite texture: "+path.name,max(image.size)<=importer['maxTextureSize'])
         check("No sprite mip/readback copy: "+path.name,importer['mipmaps']['enableMipMap']==0 and importer['isReadable']==0)
-        if path.name in ['Soldier.png','Arrow.png','Fire.png','Lightning.png','Ice.png','Wind.png']:
+        if path.name in ['Soldier.png','Arrow.png']:
             image=Image.open(path)
             check("Transparent foreground: "+path.name,image.getchannel('A').getextrema()==(0,255))
             check("Transparent RGB clean: "+path.name,all(a or not (r or g or b) for r,g,b,a in zip(*[iter(image.tobytes())]*4)))
-        elif path.name=='GrassBattlefield.png':
-            check("Opaque grass battlefield",Image.open(path).getchannel('A').getextrema()==(255,255))
     for path in ASSETS.rglob("*.cs"):
         check("C# delimiter scan: "+path.name,balanced_csharp(path.read_text()))
     core="\n".join(p.read_text()for p in (ASSETS/"Scripts/Core").glob("*.cs"))
@@ -153,7 +154,7 @@ def main():
     settings=next(iter(documents(ROOT/"ProjectSettings/ProjectSettings.asset").values()))
     check("Portrait and legacy input configured",settings["defaultScreenOrientation"]==1 and settings["activeInputHandler"]==0)
     check("IL2CPP mobile backends",settings["scriptingBackend"]["iPhone"]==settings["scriptingBackend"]["Android"]==1)
-    check("No app internet/storage permission requested",settings["forceInternetPermission"]==settings["forceSDCardPermission"]==0)
+    check("No app internet/storage permission requested",settings["ForceInternetPermission"]==settings["ForceSDCardPermission"]==0)
     axes=next(iter(documents(ROOT/"ProjectSettings/InputManager.asset").values()))["m_Axes"]
     check("Legacy UI input axes exist",{axis["m_Name"]for axis in axes}>={"Horizontal","Vertical","Submit","Cancel"})
     deps=json.loads((ROOT/"Packages/manifest.json").read_text())["dependencies"]

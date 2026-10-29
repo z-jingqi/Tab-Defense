@@ -6,7 +6,7 @@ namespace TapDefense.Core
     public enum RunState { Ready, Combat, Upgrade, Lost }
     public enum EnemyKind { Normal, Fast, Tank, Boss, Charger }
     public enum UpgradeKind { Damage, Radius, Cooldown, Chain, MaxHealth, Heal,
-        MultiShot, Pierce, Burst, CriticalChance, CriticalDamage, UnlockFire, UnlockLightning, UnlockIce, UnlockWind }
+        MultiShot, Pierce, Burst, CriticalChance, CriticalDamage }
 
     [Serializable]
     public sealed class RunParameters
@@ -71,14 +71,13 @@ namespace TapDefense.Core
         public int Pierce { get; private set; }
         public float CriticalChance { get; private set; }
         public float CriticalMultiplier { get; private set; }
-        public ElementInventory Elements { get; }
         public float ChainRadius => parameters.chainRadius + Math.Max(0, ChainStacks - 1) * parameters.chainRadiusGain;
         public float ChainDamage => Damage * (parameters.chainDamageFraction + Math.Max(0, ChainStacks - 1) * parameters.chainDamageGain);
         public int ChainMaxDepth => Math.Max(0, parameters.chainMaxDepth);
         public int NextUpgradeCost => Math.Max(1, parameters.firstUpgradeCost + Level * parameters.upgradeCostGrowth);
         private readonly RunParameters parameters;
 
-        public RunModel(RunParameters parameters, ElementDefinition[] elements = null)
+        public RunModel(RunParameters parameters)
         {
             this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
             MaxHealth = Health = Math.Max(1, parameters.playerHealth);
@@ -86,7 +85,6 @@ namespace TapDefense.Core
             Radius = Math.Max(0.1f, parameters.radius);
             Cooldown = Math.Max(parameters.minimumCooldown, parameters.cooldown);
             CriticalChance = parameters.criticalChance; CriticalMultiplier = parameters.criticalMultiplier;
-            Elements = new ElementInventory(elements ?? ElementDefinition.Defaults());
         }
 
         public ArrowAttack CaptureAttack(float bulletRadius)
@@ -94,7 +92,7 @@ namespace TapDefense.Core
             return new ArrowAttack { damage = Damage, criticalChance = CriticalChance, criticalMultiplier = CriticalMultiplier,
                 radius = bulletRadius * Radius / parameters.radius, spacing = parameters.arrowSpacing,
                 sideDamage = parameters.sideArrowDamage, burstInterval = parameters.burstInterval,
-                arrows = Arrows, bursts = Bursts, pierce = Pierce, element = Elements.Selected };
+                arrows = Arrows, bursts = Bursts, pierce = Pierce };
         }
 
         public bool StartRun()
@@ -139,17 +137,12 @@ namespace TapDefense.Core
             if (Pierce < parameters.maxPierce) candidates.Add(UpgradeKind.Pierce);
             if (CriticalChance < 1f) candidates.Add(UpgradeKind.CriticalChance);
             candidates.Add(UpgradeKind.CriticalDamage);
-            for (int i = 0; i < 4; i++)
-                if (!Elements.Get((ElementKind)i).Unlocked) candidates.Add((UpgradeKind)((int)UpgradeKind.UnlockFire + i));
             for (int i = candidates.Count - 1; i > 0; i--)
             {
                 int j = random.Next(i + 1);
                 UpgradeKind temporary = candidates[i]; candidates[i] = candidates[j]; candidates[j] = temporary;
             }
             var choices = new[] { candidates[0], candidates[1], candidates[2] };
-            // Always offer an element until the player chooses the first one; choosing it remains optional.
-            if (Elements.UnlockedCount == 0 && Array.TrueForAll(choices, c => (int)c < (int)UpgradeKind.UnlockFire))
-                choices[2] = (UpgradeKind)((int)UpgradeKind.UnlockFire + random.Next(4));
             return choices;
         }
 
@@ -169,9 +162,6 @@ namespace TapDefense.Core
                 case UpgradeKind.Pierce: if (Pierce >= parameters.maxPierce) return false; Pierce++; break;
                 case UpgradeKind.CriticalChance: CriticalChance = Math.Min(1, CriticalChance + parameters.criticalChanceGain); break;
                 case UpgradeKind.CriticalDamage: CriticalMultiplier += parameters.criticalDamageGain; break;
-                case UpgradeKind.UnlockFire: case UpgradeKind.UnlockLightning: case UpgradeKind.UnlockIce: case UpgradeKind.UnlockWind:
-                    if (!Elements.Unlock((ElementKind)((int)kind - (int)UpgradeKind.UnlockFire))) return false;
-                    break;
                 default: return false;
             }
             PendingUpgrades--;

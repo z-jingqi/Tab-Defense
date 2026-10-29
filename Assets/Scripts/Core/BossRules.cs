@@ -3,7 +3,7 @@ using System;
 namespace TapDefense.Core
 {
     public enum BossSkill { Summon, Cloud, Heal, Armor, Shield }
-    public enum DamageSource { Arrow, Area, Burn }
+    public enum DamageSource { Arrow, Area }
 
     [Serializable]
     public sealed class BossProfile

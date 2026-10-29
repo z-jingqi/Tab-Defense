@@ -9,31 +9,27 @@ namespace TapDefense.Tests
     {
         private const string ConfigPath = "Assets/Data/GameConfig.asset";
 
+
         [Test]
-        public void ApprovedArtIsAssignedAndUsesSingleSprites()
+        public void RemainingCombatArtImportsAndHitShaderAreValid()
         {
             var config = AssetDatabase.LoadAssetAtPath<GameConfig>(ConfigPath);
-            Assert.IsNotNull(config);
-            Assert.IsNull(config.ValidateData());
+            Assert.IsNotNull(config); Assert.IsNull(config.ValidateData());
             Assert.IsFalse(ShaderUtil.ShaderHasError(config.enemySpriteMaterial.shader));
-            Assert.IsNull(config.ElementIcon(ElementKind.None));
-            for (int i = 0; i < 4; i++) Assert.IsNotNull(config.ElementIcon((ElementKind)i));
             Sprite soldier = config.Enemy(EnemyKind.Normal).sprite;
             foreach (var enemy in config.enemies)
             {
                 if (enemy.kind == EnemyKind.Boss) continue;
                 Assert.AreSame(soldier, enemy.sprite);
-                Assert.IsNull(enemy.movementAnimation, "A single running pose is not an animation sheet.");
+                Assert.IsNull(enemy.movementAnimation);
                 Assert.IsFalse(enemy.swayWhileMoving);
             }
-            foreach (var sprite in new[] { soldier, config.arrowSprite, config.battlefieldSprite,
-                config.fireIcon, config.lightningIcon, config.iceIcon, config.windIcon })
+            foreach (var sprite in new[] { soldier, config.arrowSprite })
             {
                 var importer = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(sprite));
                 Assert.AreEqual(TextureImporterType.Sprite, importer.textureType);
                 Assert.AreEqual(SpriteImportMode.Single, importer.spriteImportMode);
-                Assert.IsFalse(importer.mipmapEnabled);
-                Assert.IsFalse(importer.isReadable);
+                Assert.IsFalse(importer.mipmapEnabled); Assert.IsFalse(importer.isReadable);
                 Assert.AreEqual(TextureWrapMode.Clamp, importer.wrapMode);
                 Assert.AreEqual(FilterMode.Bilinear, importer.filterMode);
             }
@@ -77,31 +73,5 @@ namespace TapDefense.Tests
             finally { Object.DestroyImmediate(go); Object.DestroyImmediate(other); }
         }
 
-        [Test]
-        public void StaticSoldierKeepsItsPoseWhenMovingFrozenAndReused()
-        {
-            var config = AssetDatabase.LoadAssetAtPath<GameConfig>(ConfigPath);
-            var definition = config.Enemy(EnemyKind.Normal);
-            var go = new GameObject("Static soldier", typeof(SpriteRenderer), typeof(EnemyView));
-            try
-            {
-                var view = go.GetComponent<EnemyView>();
-                view.Spawn(definition, new SpawnSettings(), Vector2.zero, 1);
-                view.Step(0.25f);
-                Assert.Less(view.Position.y, 0);
-                Assert.AreEqual(Quaternion.identity, go.transform.rotation);
-                Assert.AreSame(definition.sprite, go.GetComponent<SpriteRenderer>().sprite);
-                var ice = ElementDefinition.Defaults()[2];
-                view.Chill(ice); view.Chill(ice); view.Chill(ice);
-                Vector2 frozenAt = view.Position;
-                view.Step(0.1f);
-                Assert.AreEqual(frozenAt, view.Position);
-                Assert.AreEqual(Quaternion.identity, go.transform.rotation);
-                view.Spawn(definition, new SpawnSettings(), Vector2.one, 2);
-                Assert.IsFalse(view.Frozen);
-                Assert.AreEqual(Quaternion.identity, go.transform.rotation);
-            }
-            finally { Object.DestroyImmediate(go); }
-        }
     }
 }

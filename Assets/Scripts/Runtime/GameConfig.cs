@@ -17,7 +17,6 @@ namespace TapDefense
         public RouteDefinition route = new RouteDefinition();
         [Min(0)] public float availableAfterSeconds;
         [Min(0)] public int spawnWeight = 65;
-        [Range(0,1)] public float controlResistance;
         public Color color = Color.white;
         public Sprite sprite;
         [Tooltip("Optional movement frames. Leave empty to use the static sprite.")]
@@ -31,15 +30,8 @@ namespace TapDefense
     {
         public RunParameters progression = new RunParameters();
         public PresentationSettings presentation = new PresentationSettings();
-        public ElementDefinition[] elements = ElementDefinition.Defaults();
         [Min(1)] public int pendingBurstLimit = 24;
         public Sprite arrowSprite;
-        [Header("Battlefield art")]
-        public Sprite battlefieldSprite;
-        public Sprite fireIcon;
-        public Sprite lightningIcon;
-        public Sprite iceIcon;
-        public Sprite windIcon;
         [Header("Small enemy hit feedback")]
         public Material enemySpriteMaterial;
         [Range(0.05f, 0.3f)] public float hitFlashDuration = 0.12f;
@@ -68,17 +60,7 @@ namespace TapDefense
         public Sprite diamondSprite;
         public Sprite squareSprite;
 
-        public Sprite ElementIcon(ElementKind kind)
-        {
-            switch (kind)
-            {
-                case ElementKind.Fire: return fireIcon;
-                case ElementKind.Lightning: return lightningIcon;
-                case ElementKind.Ice: return iceIcon;
-                case ElementKind.Wind: return windIcon;
-                default: return null;
-            }
-        }
+
 
         public EnemyDefinition Enemy(EnemyKind kind)
         {
@@ -104,18 +86,10 @@ namespace TapDefense
         public string ValidateData()
         {
             if (!enemySpriteMaterial || !enemySpriteMaterial.HasProperty("_HitFlash") || float.IsNaN(hitFlashDuration) || hitFlashDuration < 0.05f || hitFlashDuration > 0.3f || float.IsNaN(hitFlashStrength) || hitFlashStrength < 0 || hitFlashStrength > 0.35f) return "Invalid enemy hit feedback.";
-            if (!battlefieldSprite || !fireIcon || !lightningIcon || !iceIcon || !windIcon) return "Missing battlefield art.";
+            
             if (presentation == null || !presentation.IsValid) return "Invalid presentation settings.";
             if (progression == null || spawning == null || spawning.healthMultiplier <= 0 || spawning.speedMultiplier <= 0 || spawning.spawnInterval <= 0 || spawning.maxAlive <= 0 || spawning.maxAlive > enemyPoolSize || bulletSpeed <= 0 || bulletRadius <= 0 || bulletPoolSize < 1 || difficultyGrowthPerMinute < 0) return "Invalid survival settings.";
-            if (pendingBurstLimit < 1 || !arrowSprite || elements == null || elements.Length != 4) return "Invalid arrow/element configuration.";
-            var elementKinds = new bool[4];
-            foreach (var element in elements)
-            {
-                int i = element == null ? -1 : (int)element.kind;
-                if (i < 0 || i >= 4 || elementKinds[i]) return "Element kinds must be unique.";
-                elementKinds[i] = true;
-                if (element.capacity < 1 || element.rechargeSeconds <= 0 || element.radius <= 0 || element.damageFraction < 0 || element.duration <= 0 || element.burnDamagePerSecond < 0 || element.lightningTargets < 1 || element.lightningTargets > 8 || element.slowMultiplier <= 0 || element.slowMultiplier > 1 || element.freezeHits < 1 || element.freezeSeconds < 0 || element.pullSpeed < 0) return "Invalid element settings.";
-            }
+            if(pendingBurstLimit<1 || !arrowSprite)return "Invalid arrow configuration.";
             if (progression.maxArrows < 1 || progression.maxArrows > 9 || progression.maxBursts < 1 || progression.maxBursts > 9 || progression.maxPierce < 0 || progression.maxPierce > 16 || progression.burstInterval <= 0 || progression.arrowSpacing < 0 || progression.sideArrowDamage <= 0 || progression.criticalChance < 0 || progression.criticalChance > 1 || progression.criticalMultiplier < 1 || progression.criticalChanceGain <= 0 || progression.criticalDamageGain <= 0 || bulletPoolSize < progression.maxArrows) return "Invalid arrow upgrades.";
             if (enemies == null || enemies.Length != 5) return "Five enemy definitions are required.";
             var seen = new bool[5];
@@ -123,7 +97,7 @@ namespace TapDefense
             {
                 if (enemy == null || (int)enemy.kind < 0 || (int)enemy.kind >= 5 || seen[(int)enemy.kind]) return "Enemy kinds must be unique.";
                 seen[(int)enemy.kind] = true;
-                if (enemy.route == null || !enemy.route.IsValid || enemy.availableAfterSeconds < 0 || enemy.spawnWeight < 0 || enemy.controlResistance < 0 || enemy.controlResistance > 1 || (int)enemy.rank < 0 || (int)enemy.rank > 2 || (enemy.kind == EnemyKind.Boss) != (enemy.rank == EnemyRank.Boss)) return "Invalid enemy behavior.";
+                if (enemy.route == null || !enemy.route.IsValid || enemy.availableAfterSeconds < 0 || enemy.spawnWeight < 0 || (int)enemy.rank < 0 || (int)enemy.rank > 2 || (enemy.kind == EnemyKind.Boss) != (enemy.rank == EnemyRank.Boss)) return "Invalid enemy behavior.";
                 if (enemy.movementAnimation && enemy.movementAnimation.ValidateData() != null)
                     return "Invalid movement animation for " + enemy.kind + ": " + enemy.movementAnimation.ValidateData();
                 if (enemy.health <= 0 || enemy.speed <= 0 || enemy.radius <= 0 || enemy.contactDamage <= 0 || enemy.experience < 0 || !enemy.sprite) return "Invalid enemy attributes.";

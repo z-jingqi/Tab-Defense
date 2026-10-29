@@ -13,8 +13,6 @@ namespace TapDefense
         private readonly Color panel = new Color(0.07f, 0.11f, 0.18f);
         private readonly Color mint = new Color(0.35f, 1f, 0.82f);
         private readonly Color muted = new Color(0.55f, 0.66f, 0.74f);
-        private readonly Button[] elementButtons = new Button[4];
-        private readonly Text[] elementLabels = new Text[4];
         private RectTransform arrowPanel;
         private Image arrowPreview;
         private Font font;
@@ -22,7 +20,7 @@ namespace TapDefense
         private GameConfig config;
         private RectTransform safe;
         private Text modeLabel, timer, health, experience, footer, combo, overlayTitle, overlayBody, overlayStats, hint, bossLabel;
-        private Image healthFill, xpFill, cooldownFill, bossFill;
+        private Image healthFill, xpFill, bossFill;
         private GameObject overlay, bossBar;
         private Button mainButton, pauseButton, soundButton;
         private Text mainButtonLabel, pauseLabel, soundLabel;
@@ -54,7 +52,7 @@ namespace TapDefense
                 events.sendNavigationEvents = false;
             }
 
-            // Keep HUD text readable over the painted grass without tinting the battlefield.
+            // Compact backplates keep HUD text readable over moving characters.
             Image headerBackplate = Image("Header Backplate", safe, new Color(ink.r, ink.g, ink.b, 0.32f));
             Place(headerBackplate.rectTransform, Vector2.up, Vector2.one, Vector2.zero, new Vector2(0,320), Vector2.up);
             Image footerBackplate = Image("Footer Backplate", safe, new Color(ink.r, ink.g, ink.b, 0.32f));
@@ -71,33 +69,23 @@ namespace TapDefense
             soundButton = Button("Sound", safe, "SND", () => game.ToggleSound(), out soundLabel);
             soundLabel.fontSize = 22;
             Place(soundButton.GetComponent<RectTransform>(), Vector2.one, Vector2.one, new Vector2(-144,-46), new Vector2(110,58), new Vector2(1,0.5f));
-            healthFill = Bar("Core HP", safe, -184, new Color(0.35f,1,0.82f), out health);
-            xpFill = Bar("Experience", safe, -235, new Color(0.65f,0.48f,1), out experience);
+            healthFill = Bar("Hero HP", safe, -184, new Color(0.35f,1,0.82f), out health);
+            var xpTrack=Image("Experience",transform,panel);
+            Place(xpTrack.rectTransform,Vector2.zero,Vector2.right,Vector2.zero,new Vector2(0,12),new Vector2(.5f,0));
+            xpFill=Image("Fill",xpTrack.transform,new Color(.65f,.48f,1));xpFill.sprite=config.squareSprite;
+            xpFill.type=UnityEngine.UI.Image.Type.Filled;xpFill.fillMethod=UnityEngine.UI.Image.FillMethod.Horizontal;
+            experience=Label("Level",safe,"",24,Color.white,TextAnchor.LowerLeft);
+            Place(experience.rectTransform,Vector2.zero,Vector2.zero,new Vector2(40,28),new Vector2(650,40),Vector2.zero);
             bossFill = Bar("Boss", safe, -286, new Color(1,0.36f,0.44f), out bossLabel);
             bossBar = bossFill.transform.parent.gameObject;
 
             arrowPanel = Image("Arrow Preview", safe, panel).rectTransform;
-            Place(arrowPanel, Vector2.right, Vector2.right, new Vector2(-28,410), new Vector2(150,250), new Vector2(1,0.5f));
+            Place(arrowPanel, Vector2.right, Vector2.right, new Vector2(-28,700), new Vector2(150,250), new Vector2(1,0.5f));
             arrowPreview = Image("Current Arrow", arrowPanel, Color.white);
             arrowPreview.sprite = config.arrowSprite; arrowPreview.preserveAspect = true;
             Center(arrowPreview.rectTransform, 35, 70, 110);
-            cooldownFill = Image("Shot Cooldown", arrowPanel, mint);
-            cooldownFill.sprite = config.squareSprite; cooldownFill.type = UnityEngine.UI.Image.Type.Filled;
-            cooldownFill.fillMethod = UnityEngine.UI.Image.FillMethod.Horizontal;
-            Center(cooldownFill.rectTransform,-40,120,8);
             hint = Label("Arrow State",arrowPanel,"",20,Color.white,TextAnchor.MiddleCenter);
             Center(hint.rectTransform,-83,140,60);
-            for (int i = 0; i < 4; i++)
-            {
-                ElementKind kind = (ElementKind)i;
-                elementButtons[i] = Button("Element " + kind,safe,"",() => game.SelectElement(kind),out elementLabels[i]);
-                elementLabels[i].fontSize = 22;
-                Center(elementLabels[i].rectTransform, -36, 158, 80);
-                Image icon = Image("Icon", elementButtons[i].transform, Color.white);
-                icon.sprite = config.ElementIcon(kind); icon.preserveAspect = true;
-                Center(icon.rectTransform, 40, 60, 60);
-                elementButtons[i].gameObject.SetActive(false);
-            }
             footer = Label("Stats", safe, "", 24, muted, TextAnchor.MiddleCenter);
             Place(footer.rectTransform, Vector2.zero, Vector2.right, new Vector2(0,220), new Vector2(-50,60), new Vector2(0.5f,0.5f));
             combo = Label("Toast", safe, "", 32, mint, TextAnchor.MiddleCenter);
@@ -132,8 +120,6 @@ namespace TapDefense
         public bool BlocksTap(Vector2 point)
         {
             if (RectTransformUtility.RectangleContainsScreenPoint(arrowPanel, point)) return true;
-            foreach (var button in elementButtons)
-                if (button.gameObject.activeInHierarchy && RectTransformUtility.RectangleContainsScreenPoint(button.GetComponent<RectTransform>(),point)) return true;
             return (pauseButton.gameObject.activeInHierarchy && RectTransformUtility.RectangleContainsScreenPoint(pauseButton.GetComponent<RectTransform>(), point))
                 || RectTransformUtility.RectangleContainsScreenPoint(soundButton.GetComponent<RectTransform>(), point);
         }
@@ -149,31 +135,13 @@ namespace TapDefense
 
             modeLabel.text = "ENDLESS SURVIVAL";
             timer.text = Mathf.FloorToInt(game.SurvivalTime).ToString() + "s";
-            health.text = "HP  " + Mathf.CeilToInt(run.Health) + " / " + Mathf.CeilToInt(run.MaxHealth);
+            health.text = "HERO HP  " + Mathf.CeilToInt(run.Health) + " / " + Mathf.CeilToInt(run.MaxHealth);
             healthFill.fillAmount = run.Health / run.MaxHealth;
             xpFill.fillAmount = Mathf.Clamp01(run.ExperienceBank / (float)run.NextUpgradeCost);
             experience.text = "XP  " + run.ExperienceBank + " / " + run.NextUpgradeCost + "   |   LV " + (run.Level + 1);
-            float ready = 1 - Mathf.Clamp01(game.CooldownLeft / run.Cooldown);
-            cooldownFill.fillAmount = ready;
-            hint.text = ElementName(run.Elements.Selected) + "\n" + (ready >= 1 ? "READY" : game.CooldownLeft.ToString("0.0") + "s");
-            arrowPreview.color = ElementAppearance.Tint(run.Elements.Selected);
-            int visible = 0;
-            for (int i = 0; i < 4; i++)
-            {
-                var charge = run.Elements.Get((ElementKind)i);
-                elementButtons[i].gameObject.SetActive(charge.Unlocked);
-                if (!charge.Unlocked) continue;
-                Place(elementButtons[i].GetComponent<RectTransform>(),new Vector2(0.5f,0),new Vector2(0.5f,0),
-                    new Vector2(ElementBarLayout.Offset(visible++,run.Elements.UnlockedCount,188),110),new Vector2(168,160),new Vector2(0.5f,0.5f));
-                bool selected = run.Elements.Selected == (ElementKind)i;
-                elementButtons[i].image.color = selected ? ElementAppearance.Tint((ElementKind)i) : panel;
-                elementLabels[i].color = selected ? ink : ElementAppearance.Tint((ElementKind)i);
-                elementButtons[i].interactable = charge.Count > 0 && run.State == RunState.Combat && !game.Paused;
-                elementLabels[i].text = ElementName((ElementKind)i) + "\n" + charge.Count + " / " + charge.Definition.capacity
-                    + "\n" + (charge.RechargeLeft > 0 ? "+1 " + charge.RechargeLeft.ToString("0.0") + "s" : "FULL");
-            }
-            footer.text = "DMG " + Mathf.RoundToInt(run.Damage) + "    SIZE " + run.Radius.ToString("0.00") + "    CD " + run.Cooldown.ToString("0.00") + "s    CHAIN " + run.ChainStacks;
-            combo.text = Time.unscaledTime < toastUntil ? toast : (run.State == RunState.Combat ? "ENEMIES MOVE DOWN / SHOTS MOVE UP" : "");
+            hint.text="AUTO ARROW";arrowPreview.color=Color.white;
+            footer.text = "DMG " + Mathf.RoundToInt(run.Damage) + "    SIZE " + run.Radius.ToString("0.00") + "    CHAIN " + run.ChainStacks;
+            combo.text = Time.unscaledTime < toastUntil ? toast : (run.State == RunState.Combat ? "DRAG HERO LEFT / RIGHT  |  AUTO FIRE" : "");
             powerToast.text = Time.unscaledTime < toastUntil ? toast : "";
             bossBar.SetActive(game.BossInformationVisible && run.State == RunState.Combat);
             bossFill.fillAmount = game.BossHealthFraction; bossLabel.text = game.BossDisplay;
@@ -197,14 +165,14 @@ namespace TapDefense
             }
             mainButton.gameObject.SetActive(!upgrade);
             overlayStats.text = "KILLS " + run.Kills + "    TOTAL XP " + run.TotalExperience + "    LEVEL " + (run.Level + 1)
-                + "\n" + "DMG " + Mathf.RoundToInt(run.Damage) + "   SIZE " + run.Radius.ToString("0.00") + "   COOLDOWN " + run.Cooldown.ToString("0.00") + "s";
+                + "\n" + "DMG " + Mathf.RoundToInt(run.Damage) + "   SIZE " + run.Radius.ToString("0.00");
             if (game.Paused)
             { overlayTitle.text = "PAUSED"; overlayBody.text = "Combat is paused."; mainButtonLabel.text = "RESUME"; }
             else switch (run.State)
             {
                 case RunState.Ready:
                     overlayTitle.text="TAP DEFENSE";
-                    overlayBody.text="Tap the battlefield to launch arrows upward.\nStop falling enemies. Every escape costs HP.";
+                    overlayBody.text="Drag horizontally in the lower battlefield to move your hero.\nArrows fire straight up. Align with enemies. Enemies stop at the line, then approach and strike your hero.";
                     mainButtonLabel.text="START SURVIVAL";
                     overlayStats.text="Kills earn XP. Choose powers as you level up.\nSurvive as long as you can."; break;
                 case RunState.Upgrade:
@@ -216,8 +184,7 @@ namespace TapDefense
                     mainButtonLabel.text="TRY AGAIN";break;
             }
         }
-        public static string ElementName(ElementKind kind)
-        { return kind == ElementKind.None ? "ARROW" : kind.ToString().ToUpperInvariant(); }
+
         public static string UpgradeName(UpgradeKind kind)
         {
             switch(kind)
@@ -227,10 +194,6 @@ namespace TapDefense
                 case UpgradeKind.Burst: return "BURST FIRE";
                 case UpgradeKind.CriticalChance: return "KEEN EYE";
                 case UpgradeKind.CriticalDamage: return "DEADLY STRIKE";
-                case UpgradeKind.UnlockFire: return "UNLOCK FIRE";
-                case UpgradeKind.UnlockLightning: return "UNLOCK LIGHTNING";
-                case UpgradeKind.UnlockIce: return "UNLOCK ICE";
-                case UpgradeKind.UnlockWind: return "UNLOCK WIND";
                 case UpgradeKind.Damage: return "OVERCHARGE";
                 case UpgradeKind.Radius: return "WIDE IMPACT";
                 case UpgradeKind.Cooldown: return "RAPID PULSE";
@@ -242,22 +205,16 @@ namespace TapDefense
         private static string UpgradeDescription(UpgradeKind kind, GameConfig config, RunModel run)
         {
             RunParameters p = config.progression;
-            if ((int)kind >= (int)UpgradeKind.UnlockFire)
-            {
-                var element = run.Elements.Get((ElementKind)((int)kind - (int)UpgradeKind.UnlockFire)).Definition;
-                string effect = kind == UpgradeKind.UnlockFire ? "Area damage + burning." : kind == UpgradeKind.UnlockLightning ? "Jump damage to nearby enemies." : kind == UpgradeKind.UnlockIce ? "Area slow; repeated hits freeze." : "Pull nearby enemies together.";
-                return effect + "\n" + element.capacity + " charges; +1 every " + element.rechargeSeconds.ToString("0.0") + "s.";
-            }
             switch(kind)
             {
                 case UpgradeKind.MultiShot: return "One extra parallel arrow per volley. Side arrows deal " + (p.sideArrowDamage*100).ToString("0") + "% damage.";
-                case UpgradeKind.Burst: return "One extra volley per tap. Shares one element charge.";
+                case UpgradeKind.Burst: return "One extra volley per auto-attack.";
                 case UpgradeKind.Pierce: return "Each arrow passes through one extra enemy.";
                 case UpgradeKind.CriticalChance: return "Critical chance +" + (p.criticalChanceGain*100).ToString("0") + " percentage points.";
                 case UpgradeKind.CriticalDamage: return "Critical damage multiplier +" + p.criticalDamageGain.ToString("0.00") + ".";
                 case UpgradeKind.Damage: return "Arrow damage +" + (p.damageGain*100).ToString("0") + "%  |  " + run.Damage.ToString("0") + " > " + (run.Damage*(1+p.damageGain)).ToString("0");
                 case UpgradeKind.Radius: return "Bullet size +" + p.radiusGain.ToString("0.00") + "  |  Wider bullets hit more easily.";
-                case UpgradeKind.Cooldown: return "Cooldown -" + ((1-p.cooldownMultiplier)*100).ToString("0") + "%  |  " + run.Cooldown.ToString("0.00") + "s > " + Mathf.Max(p.minimumCooldown,run.Cooldown*p.cooldownMultiplier).ToString("0.00") + "s";
+                case UpgradeKind.Cooldown: return "Attack interval -" + ((1-p.cooldownMultiplier)*100).ToString("0") + "%  |  " + run.Cooldown.ToString("0.00") + "s > " + Mathf.Max(p.minimumCooldown,run.Cooldown*p.cooldownMultiplier).ToString("0.00") + "s";
                 case UpgradeKind.Chain: return run.ChainStacks == 0 ? "Every kill ignites a chain blast.\nChains can spread for " + p.chainMaxDepth + " generations." : "Chain damage +" + (p.chainDamageGain*100).ToString("0") + "% of blast damage.\nChain radius +" + p.chainRadiusGain.ToString("0.00") + ". Stacks with every pick.";
                 case UpgradeKind.MaxHealth: return "Maximum player HP +" + p.maxHealthGain.ToString("0") + ".\nAlso restore " + p.maxHealthGain.ToString("0") + " HP immediately.";
                 default: return "Restore " + (p.healFraction*100).ToString("0") + "% of maximum player HP.\nCurrent HP " + run.Health.ToString("0") + " / " + run.MaxHealth.ToString("0");

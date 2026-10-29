@@ -3,35 +3,28 @@
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject:
-    fileID: 0
-  m_PrefabInstance:
-    fileID: 0
-  m_PrefabAsset:
-    fileID: 0
-  m_GameObject:
-    fileID: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script:
-    fileID: 11500000
-    guid: fb28b27a6f3d4fd240f2da31d25ce234
-    type: 3
+  m_Script: {fileID: 11500000, guid: fb28b27a6f3d4fd240f2da31d25ce234, type: 3}
   m_Name: GameConfig
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   progression:
-    damage: 28.0
+    damage: 28
     radius: 1.05
     cooldown: 0.32
     minimumCooldown: 0.1
     maximumRadius: 2.8
-    playerHealth: 120.0
+    playerHealth: 120
     firstUpgradeCost: 12
     upgradeCostGrowth: 6
     damageGain: 0.28
     radiusGain: 0.13
     cooldownMultiplier: 0.9
-    maxHealthGain: 25.0
+    maxHealthGain: 25
     healFraction: 0.35
     chainRadius: 0.7
     chainDamageFraction: 0.48
@@ -48,245 +41,147 @@ MonoBehaviour:
     burstInterval: 0.1
     arrowSpacing: 0.35
     sideArrowDamage: 0.65
+  presentation:
+    native:
+      targetFrameRate: 60
+      effectPoolLimit: 96
+      damageNumberPoolLimit: 48
+      screenShakeMultiplier: 1
+    web:
+      targetFrameRate: 30
+      effectPoolLimit: 48
+      damageNumberPoolLimit: 24
+      screenShakeMultiplier: 0.6
+  pendingBurstLimit: 24
+  arrowSprite: {fileID: 21300000, guid: 907ed45b1cf31fdb1e7993558dc4a62a, type: 3}
+  enemySpriteMaterial: {fileID: 2100000, guid: dd3fb8bd5db84180aff17ecf4f23948e, type: 2}
+  hitFlashDuration: 0.12
+  hitFlashStrength: 0.18
+  spawning:
+    spawnInterval: 0.65
+    maxAlive: 150
+    healthMultiplier: 1
+    speedMultiplier: 1
+  bulletSpeed: 11
+  bulletRadius: 0.13
+  bulletPoolSize: 96
+  difficultyGrowthPerMinute: 0.15
   enemies:
   - kind: 0
-    health: 18.0
+    health: 18
     speed: 0.65
-    contactDamage: 5.0
+    contactDamage: 5
     experience: 1
-    radius: 0.18
-    color:
-      r: 1
-      g: 1
-      b: 1
-      a: 1
-    sprite:
-      fileID: 21300000
-      guid: 8a6774cc67184b87b50812477e3cbf95
-      type: 3
-    swayWhileMoving: 0
+    radius: 0.58
     rank: 0
-    availableAfterSeconds: 0
-    spawnWeight: 65
-    controlResistance: 0
     route:
       kind: 0
       amplitude: 0.65
       period: 2.4
       moveSeconds: 1.6
       stopSeconds: 0.65
-      cruiseSeconds: 2.0
+      cruiseSeconds: 2
       windupSeconds: 0.7
       dashSeconds: 0.45
       dashMultiplier: 3.2
-  - kind: 1
-    health: 13.0
-    speed: 1.05
-    contactDamage: 3.0
-    experience: 2
-    radius: 0.16
-    color:
-      r: 1
-      g: 0.94
-      b: 0.82
-      a: 1
-    sprite:
-      fileID: 21300000
-      guid: 8a6774cc67184b87b50812477e3cbf95
-      type: 3
+    availableAfterSeconds: 0
+    spawnWeight: 65
+    color: {r: 1, g: 1, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: 8a6774cc67184b87b50812477e3cbf95, type: 3}
+    movementAnimation: {fileID: 0}
     swayWhileMoving: 0
+  - kind: 1
+    health: 13
+    speed: 1.05
+    contactDamage: 3
+    experience: 2
+    radius: 0.54
     rank: 0
-    availableAfterSeconds: 15
-    spawnWeight: 22
-    controlResistance: 0
     route:
       kind: 1
       amplitude: 0.65
       period: 2.4
       moveSeconds: 1.6
       stopSeconds: 0.65
-      cruiseSeconds: 2.0
+      cruiseSeconds: 2
       windupSeconds: 0.7
       dashSeconds: 0.45
       dashMultiplier: 3.2
-  - kind: 2
-    health: 72.0
-    speed: 0.43
-    contactDamage: 12.0
-    experience: 4
-    radius: 0.29
-    color:
-      r: 0.8
-      g: 0.87
-      b: 1
-      a: 1
-    sprite:
-      fileID: 21300000
-      guid: 8a6774cc67184b87b50812477e3cbf95
-      type: 3
+    availableAfterSeconds: 15
+    spawnWeight: 22
+    color: {r: 1, g: 0.94, b: 0.82, a: 1}
+    sprite: {fileID: 21300000, guid: 8a6774cc67184b87b50812477e3cbf95, type: 3}
+    movementAnimation: {fileID: 0}
     swayWhileMoving: 0
+  - kind: 2
+    health: 72
+    speed: 0.43
+    contactDamage: 12
+    experience: 4
+    radius: 0.70
     rank: 0
-    availableAfterSeconds: 30
-    spawnWeight: 13
-    controlResistance: 0
     route:
       kind: 2
       amplitude: 0.65
       period: 2.4
       moveSeconds: 1.6
       stopSeconds: 0.65
-      cruiseSeconds: 2.0
+      cruiseSeconds: 2
       windupSeconds: 0.7
       dashSeconds: 0.45
       dashMultiplier: 3.2
+    availableAfterSeconds: 30
+    spawnWeight: 13
+    color: {r: 0.8, g: 0.87, b: 1, a: 1}
+    sprite: {fileID: 21300000, guid: 8a6774cc67184b87b50812477e3cbf95, type: 3}
+    movementAnimation: {fileID: 0}
+    swayWhileMoving: 0
   - kind: 3
     health: 900
     speed: 0.9
-    contactDamage: 9.0
+    contactDamage: 9
     experience: 60
     radius: 0.65
-    color:
-      r: 1
-      g: 0.3
-      b: 0.42
-      a: 1
-    sprite:
-      fileID: 21300000
-      guid: d9f1a52c7a823ade907c5544b0aa8ce8
-      type: 3
     rank: 2
-    availableAfterSeconds: 0
-    spawnWeight: 0
-    controlResistance: 0.6
     route:
       kind: 0
       amplitude: 0.65
       period: 2.4
       moveSeconds: 1.6
       stopSeconds: 0.65
-      cruiseSeconds: 2.0
+      cruiseSeconds: 2
       windupSeconds: 0.7
       dashSeconds: 0.45
       dashMultiplier: 3.2
+    availableAfterSeconds: 0
+    spawnWeight: 0
+    color: {r: 1, g: 0.3, b: 0.42, a: 1}
+    sprite: {fileID: 21300000, guid: d9f1a52c7a823ade907c5544b0aa8ce8, type: 3}
+    movementAnimation: {fileID: 0}
+    swayWhileMoving: 1
   - kind: 4
-    health: 32.0
+    health: 32
     speed: 0.7
-    contactDamage: 7.0
+    contactDamage: 7
     experience: 3
-    radius: 0.2
-    color:
-      r: 1
-      g: 0.8
-      b: 0.8
-      a: 1
-    sprite:
-      fileID: 21300000
-      guid: 8a6774cc67184b87b50812477e3cbf95
-      type: 3
-    swayWhileMoving: 0
+    radius: 0.62
     rank: 0
-    availableAfterSeconds: 45
-    spawnWeight: 12
-    controlResistance: 0
     route:
       kind: 3
       amplitude: 0.65
       period: 2.4
       moveSeconds: 1.6
       stopSeconds: 0.65
-      cruiseSeconds: 2.0
+      cruiseSeconds: 2
       windupSeconds: 0.7
       dashSeconds: 0.45
       dashMultiplier: 3.2
-  arenaHalfWidth: 4.5
-  arenaHalfHeight: 6.4
-  crystalRadius: 0.48
-  enemyPoolSize: 180
-  effectPoolSize: 96
-  numberPoolSize: 48
-  chainBlastsPerFrame: 12
-  chainQueueLimit: 256
-  bossAttackInterval: 1.0
-  screenShake: 0.045
-  circleSprite:
-    fileID: 21300000
-    guid: b9a878bca3f44c2ca712cd5c7934e00d
-    type: 3
-  ringSprite:
-    fileID: 21300000
-    guid: efac792c9425450d80233b4a5f417483
-    type: 3
-  diamondSprite:
-    fileID: 21300000
-    guid: 26cdd2c075641ea1c3af1b0a05f73ae6
-    type: 3
-  squareSprite:
-    fileID: 21300000
-    guid: 709d21e0d7ad383aa737045f1f41482a
-    type: 3
-  spawning:
-    spawnInterval: 0.65
-    maxAlive: 150
-    healthMultiplier: 1.0
-    speedMultiplier: 1.0
-  bulletSpeed: 11.0
-  bulletRadius: 0.13
-  bulletPoolSize: 96
-  difficultyGrowthPerMinute: 0.15
-  pendingBurstLimit: 24
-  arrowSprite:
-    fileID: 21300000
-    guid: 907ed45b1cf31fdb1e7993558dc4a62a
-    type: 3
-  elements:
-  - kind: 0
-    capacity: 3
-    rechargeSeconds: 6
-    radius: 0.75
-    damageFraction: 0.5
-    duration: 2
-    burnDamagePerSecond: 0.18
-    lightningTargets: 3
-    slowMultiplier: 0.5
-    freezeHits: 3
-    freezeSeconds: 0.6
-    pullSpeed: 1.6
-  - kind: 1
-    capacity: 3
-    rechargeSeconds: 7
-    radius: 1.3
-    damageFraction: 0.55
-    duration: 2
-    burnDamagePerSecond: 0.18
-    lightningTargets: 3
-    slowMultiplier: 0.5
-    freezeHits: 3
-    freezeSeconds: 0.6
-    pullSpeed: 1.6
-  - kind: 2
-    capacity: 3
-    rechargeSeconds: 6
-    radius: 0.65
-    damageFraction: 0
-    duration: 2
-    burnDamagePerSecond: 0.18
-    lightningTargets: 3
-    slowMultiplier: 0.5
-    freezeHits: 3
-    freezeSeconds: 0.6
-    pullSpeed: 1.6
-  - kind: 3
-    capacity: 3
-    rechargeSeconds: 7
-    radius: 0.9
-    damageFraction: 0.2
-    duration: 0.75
-    burnDamagePerSecond: 0.18
-    lightningTargets: 3
-    slowMultiplier: 0.5
-    freezeHits: 3
-    freezeSeconds: 0.6
-    pullSpeed: 1.6
+    availableAfterSeconds: 45
+    spawnWeight: 12
+    color: {r: 1, g: 0.8, b: 0.8, a: 1}
+    sprite: {fileID: 21300000, guid: 8a6774cc67184b87b50812477e3cbf95, type: 3}
+    movementAnimation: {fileID: 0}
+    swayWhileMoving: 0
   bosses:
     enabled: 1
     firstSpawnSeconds: 60
@@ -311,48 +206,22 @@ MonoBehaviour:
     staggerSeconds: 1.5
   bossProfiles:
   - title: WARDEN
-    skills:
-    - 0
-    - 4
+    skills: 0000000004000000
   - title: MISTCALLER
-    skills:
-    - 0
-    - 1
+    skills: 0000000001000000
   - title: REVENANT
-    skills:
-    - 3
-    - 2
-  presentation:
-    native:
-      targetFrameRate: 60
-      effectPoolLimit: 96
-      damageNumberPoolLimit: 48
-      screenShakeMultiplier: 1
-    web:
-      targetFrameRate: 30
-      effectPoolLimit: 48
-      damageNumberPoolLimit: 24
-      screenShakeMultiplier: 0.6
-  battlefieldSprite:
-    fileID: 21300000
-    guid: 914884d2eb9043658cd3a46a7b78d784
-    type: 3
-  fireIcon:
-    fileID: 21300000
-    guid: 3ea26b3b7c06437992e6bb37fc9f6735
-    type: 3
-  lightningIcon:
-    fileID: 21300000
-    guid: 4c43455c7157404091b989e804c5d29f
-    type: 3
-  iceIcon:
-    fileID: 21300000
-    guid: b79a18a44d9b4a30a84bd04b2a4fff88
-    type: 3
-  windIcon:
-    fileID: 21300000
-    guid: f5579490cae044d7a5617f2038487252
-    type: 3
-  enemySpriteMaterial: {fileID: 2100000, guid: dd3fb8bd5db84180aff17ecf4f23948e, type: 2}
-  hitFlashDuration: 0.12
-  hitFlashStrength: 0.18
+    skills: 0300000002000000
+  arenaHalfWidth: 4.5
+  arenaHalfHeight: 6.4
+  crystalRadius: 0.48
+  enemyPoolSize: 180
+  effectPoolSize: 96
+  numberPoolSize: 48
+  chainBlastsPerFrame: 12
+  chainQueueLimit: 256
+  bossAttackInterval: 1
+  screenShake: 0.045
+  circleSprite: {fileID: 21300000, guid: b9a878bca3f44c2ca712cd5c7934e00d, type: 3}
+  ringSprite: {fileID: 21300000, guid: efac792c9425450d80233b4a5f417483, type: 3}
+  diamondSprite: {fileID: 21300000, guid: 26cdd2c075641ea1c3af1b0a05f73ae6, type: 3}
+  squareSprite: {fileID: 21300000, guid: 709d21e0d7ad383aa737045f1f41482a, type: 3}
