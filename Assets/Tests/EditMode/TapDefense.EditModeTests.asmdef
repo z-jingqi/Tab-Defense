@@ -1,0 +1,14 @@
+{
+  "name": "TapDefense.EditModeTests",
+  "references": [
+    "TapDefense.Core",
+    "TapDefense.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}

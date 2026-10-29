@@ -1,0 +1,7 @@
+{
+  "name": "TapDefense.Runtime",
+  "references": [
+    "TapDefense.Core",
+    "Unity.ugui"
+  ]
+}

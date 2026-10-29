@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 28
+  productGUID: 1b064c0b8fb84a61a716c2f4e7092d70
+  companyName: Prototype Studio
+  productName: 点击防线
+  bundleVersion: 0.1.0
+  defaultScreenWidth: 1080
+  defaultScreenHeight: 1920
+  defaultScreenWidthWeb: 1080
+  defaultScreenHeightWeb: 1920
+  defaultIsNativeResolution: 1
+  defaultScreenOrientation: 1
+  allowedAutorotateToPortrait: 1
+  allowedAutorotateToPortraitUpsideDown: 0
+  allowedAutorotateToLandscapeRight: 0
+  allowedAutorotateToLandscapeLeft: 0
+  useOSAutorotation: 0
+  use32BitDisplayBuffer: 1
+  runInBackground: 0
+  resizableWindow: 0
+  fullscreenMode: 1
+  colorSpace: 0
+  activeInputHandler: 0
+  muteOtherAudioSources: 0
+  stripEngineCode: 1
+  iOSShowActivityIndicatorOnLoading: -1
+  iOSTargetDevice: 0
+  iOSTargetOSVersionString: 15.0
+  appleEnableAutomaticSigning: 1
+  appleDeveloperTeamID:
+  iOSRequiresFullScreen: 1
+  applicationIdentifier:
+    Android: com.prototype.tapdefense
+    Standalone: com.prototype.tapdefense
+    iPhone: com.prototype.tapdefense
+  overrideDefaultApplicationIdentifier: 1
+  buildNumber:
+    Standalone: 0
+    iPhone: 1
+    tvOS: 0
+  AndroidBundleVersionCode: 1
+  AndroidMinSdkVersion: 26
+  AndroidTargetSdkVersion: 0
+  AndroidTargetArchitectures: 2
+  forceInternetPermission: 0
+  forceSDCardPermission: 0
+  scriptingBackend:
+    Standalone: 0
+    Android: 1
+    iPhone: 1
+  managedStrippingLevel:
+    Android: 1
+    iPhone: 1
+  apiCompatibilityLevelPerPlatform:
+    Android: 6
+    iPhone: 6
+    Standalone: 6
+  scriptingDefineSymbols: {}
+  additionalCompilerArguments: {}
+  platformArchitecture: {}
+  usePlayerLog: 1

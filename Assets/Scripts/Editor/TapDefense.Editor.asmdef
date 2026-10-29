@@ -1,0 +1,10 @@
+{
+  "name": "TapDefense.Editor",
+  "references": [
+    "TapDefense.Core",
+    "TapDefense.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

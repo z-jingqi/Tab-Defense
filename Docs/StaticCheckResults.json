@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "structural_assertions": 294,
+  "csharp_files": 19,
+  "mode": "endless vertical shooting",
+  "unity_compilation": "NOT RUN - Unity Editor unavailable",
+  "unity_tests": "NOT RUN - Unity Editor unavailable",
+  "ios_export_and_xcode": "NOT RUN - macOS/Xcode unavailable",
+  "device_playtest": "NOT RUN"
+}
