@@ -25,13 +25,20 @@ namespace TapDefense
         private SpriteRenderer body, hpBack, hpFill, shieldFill;
         private TextMesh status;
         private float flash, phase;
+        private float hitFlashDuration = 0.12f, hitFlashStrength = 0.18f, appliedFlash = -1;
+        private static readonly int HitFlashId = Shader.PropertyToID("_HitFlash");
+        private MaterialPropertyBlock hitProperties;
         private bool warning;
         private readonly SpriteAnimationPlayback movementAnimation = new SpriteAnimationPlayback();
 
         // Called once for each pooled instance during construction, never from the hot combat loop.
-        public void Prepare(Sprite square)
+        public void Prepare(Sprite square, Material spriteMaterial = null, float flashDuration = 0.12f, float flashStrength = 0.18f)
         {
             body = GetComponent<SpriteRenderer>();
+            if (spriteMaterial) body.sharedMaterial = spriteMaterial;
+            hitFlashDuration = Mathf.Clamp(flashDuration, 0.05f, 0.3f);
+            hitFlashStrength = Mathf.Clamp(flashStrength, 0, 0.35f);
+            hitProperties = new MaterialPropertyBlock();
             hpBack = Visual("Health Background",square,new Color(0.05f,0.07f,0.1f),7);
             hpFill = Visual("Health",square,new Color(0.4f,1,0.7f),8);
             shieldFill = Visual("Shield",square,new Color(0.4f,0.7f,1),9);
@@ -59,7 +66,7 @@ namespace TapDefense
             body.sprite = movementAnimation.Current; body.color = definition.color;
             transform.position = position; transform.rotation = Quaternion.identity;
             transform.localScale = Vector3.one * (definition.radius * 2f);
-            phase = Random.value * 6.28f; flash = 0; BossAction = ""; RefreshVisuals();
+            phase = Random.value * 6.28f; flash = 0; appliedFlash = -1; BossAction = ""; ApplyHitFeedback(); RefreshVisuals();
         }
         public float Step(float dt)
         {
@@ -91,15 +98,27 @@ namespace TapDefense
             frozen = Mathf.Max(0,frozen-dt); pullLeft = Mathf.Max(0,pullLeft-dt);
             slowLeft = Mathf.Max(0,slowLeft-dt); if (slowLeft == 0) chill = 0;
             body.sprite = movementAnimation.Step(locomoting ? movementDt : 0);
-            if (movementAnimation.HasAnimation) transform.rotation = Quaternion.identity;
+            if (movementAnimation.HasAnimation || !Definition.swayWhileMoving) transform.rotation = Quaternion.identity;
             else
             {
-                phase += dt * (Definition.kind == EnemyKind.Fast ? 15 : 6);
+                phase += (locomoting ? movementDt : 0) * (Definition.kind == EnemyKind.Fast ? 15 : 6);
                 transform.rotation = Quaternion.Euler(0,0,Mathf.Sin(phase)*12f);
             }
-            flash = Mathf.Max(0,flash-dt*6);
-            body.color = Color.Lerp(warning ? new Color(1,0.3f,0.2f) : Definition.color,Color.white,flash);
+            flash = Mathf.Max(0,flash-dt);
+            ApplyHitFeedback();
             RefreshVisuals(); return burn;
+        }
+        private void ApplyHitFeedback()
+        {
+            Color tint = warning ? new Color(1,0.3f,0.2f,Definition.color.a) : Definition.color;
+            float amount = Mathf.Clamp01(flash / hitFlashDuration);
+            body.color = Definition.kind == EnemyKind.Boss ? Color.Lerp(tint, Color.white, amount) : tint;
+            float lift = Definition.kind == EnemyKind.Boss ? 0 : amount * hitFlashStrength;
+            if (lift == appliedFlash) return;
+            if (hitProperties == null) hitProperties = new MaterialPropertyBlock();
+            body.GetPropertyBlock(hitProperties);
+            hitProperties.SetFloat(HitFlashId, lift);
+            body.SetPropertyBlock(hitProperties); appliedFlash = lift;
         }
         public void RefreshVisuals()
         {
@@ -134,6 +153,6 @@ namespace TapDefense
             pullPoint = point; pullLeft = element.duration; pullSpeed = element.pullSpeed*(1-Definition.controlResistance);
         }
         public DamageResult Receive(float damage, DamageSource source)
-        { var result = Vitals.Receive(damage,source); flash = 1; RefreshVisuals(); return result; }
+        { var result = Vitals.Receive(damage,source); flash = hitFlashDuration; ApplyHitFeedback(); RefreshVisuals(); return result; }
     }
 }

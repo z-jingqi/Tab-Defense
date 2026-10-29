@@ -2,7 +2,7 @@
 
 点击发射箭矢，主动搭配火、雷、冰、风，拦截从上往下移动的敌人。
 
-Unity Technologies 国际版 Unity 6.3 LTS `6000.3.25f1`，C#，Built-in 2D，竖屏；以微信小游戏为主要发布目标，同时保留 iOS App 与 Android 构建路径。工程使用简单占位资源，山海经题材与赛璐璐美术、正式元素特效留待后续制作。应用显示名“点击防线”，英文标题 `TAP DEFENSE`，默认应用标识符 `com.prototype.tapdefense`。
+Unity Technologies 国际版 Unity 6.3 LTS `6000.3.25f1`，C#，Built-in 2D，竖屏；以微信小游戏为主要发布目标，同时保留 iOS App 与 Android 构建路径。工程使用复古赛璐璐草地、东方蓝甲小兵、短箭及火/雷/冰/旋风图标；小兵目前为单张静态跑姿，Boss 与战斗反馈仍保留基础占位表现，正式动画与元素特效按后续资源逐步接入。应用显示名“点击防线”，英文标题 `TAP DEFENSE`，默认应用标识符 `com.prototype.tapdefense`。
 
 工程分层、平台边界见 [架构说明](Docs/ARCHITECTURE.md)，资源交付规范见 [美术与特效流程](Docs/ART_PIPELINE.md)，微信转换流程见 [WebGL 与微信构建](Docs/WEB_BUILD.md)。
 

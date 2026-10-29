@@ -20,8 +20,10 @@ namespace TapDefense
         [Range(0,1)] public float controlResistance;
         public Color color = Color.white;
         public Sprite sprite;
-        [Tooltip("Optional movement frames. Leave empty to use the static placeholder sprite.")]
+        [Tooltip("Optional movement frames. Leave empty to use the static sprite.")]
         public SpriteAnimationClip movementAnimation;
+        [Tooltip("Optional sway for abstract placeholder art; disable for illustrated characters.")]
+        public bool swayWhileMoving = true;
     }
 
     [CreateAssetMenu(menuName = "Tap Defense/Game Config")]
@@ -32,6 +34,16 @@ namespace TapDefense
         public ElementDefinition[] elements = ElementDefinition.Defaults();
         [Min(1)] public int pendingBurstLimit = 24;
         public Sprite arrowSprite;
+        [Header("Battlefield art")]
+        public Sprite battlefieldSprite;
+        public Sprite fireIcon;
+        public Sprite lightningIcon;
+        public Sprite iceIcon;
+        public Sprite windIcon;
+        [Header("Small enemy hit feedback")]
+        public Material enemySpriteMaterial;
+        [Range(0.05f, 0.3f)] public float hitFlashDuration = 0.12f;
+        [Range(0f, 0.35f)] public float hitFlashStrength = 0.18f;
         public SpawnSettings spawning = new SpawnSettings();
         public float bulletSpeed = 11f;
         public float bulletRadius = 0.13f;
@@ -56,6 +68,18 @@ namespace TapDefense
         public Sprite diamondSprite;
         public Sprite squareSprite;
 
+        public Sprite ElementIcon(ElementKind kind)
+        {
+            switch (kind)
+            {
+                case ElementKind.Fire: return fireIcon;
+                case ElementKind.Lightning: return lightningIcon;
+                case ElementKind.Ice: return iceIcon;
+                case ElementKind.Wind: return windIcon;
+                default: return null;
+            }
+        }
+
         public EnemyDefinition Enemy(EnemyKind kind)
         {
             foreach (var enemy in enemies) if (enemy.kind == kind) return enemy;
@@ -79,6 +103,8 @@ namespace TapDefense
 
         public string ValidateData()
         {
+            if (!enemySpriteMaterial || !enemySpriteMaterial.HasProperty("_HitFlash") || float.IsNaN(hitFlashDuration) || hitFlashDuration < 0.05f || hitFlashDuration > 0.3f || float.IsNaN(hitFlashStrength) || hitFlashStrength < 0 || hitFlashStrength > 0.35f) return "Invalid enemy hit feedback.";
+            if (!battlefieldSprite || !fireIcon || !lightningIcon || !iceIcon || !windIcon) return "Missing battlefield art.";
             if (presentation == null || !presentation.IsValid) return "Invalid presentation settings.";
             if (progression == null || spawning == null || spawning.healthMultiplier <= 0 || spawning.speedMultiplier <= 0 || spawning.spawnInterval <= 0 || spawning.maxAlive <= 0 || spawning.maxAlive > enemyPoolSize || bulletSpeed <= 0 || bulletRadius <= 0 || bulletPoolSize < 1 || difficultyGrowthPerMinute < 0) return "Invalid survival settings.";
             if (pendingBurstLimit < 1 || !arrowSprite || elements == null || elements.Length != 4) return "Invalid arrow/element configuration.";

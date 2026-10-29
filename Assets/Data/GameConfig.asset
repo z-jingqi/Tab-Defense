@@ -56,14 +56,15 @@ MonoBehaviour:
     experience: 1
     radius: 0.18
     color:
-      r: 0.32
-      g: 0.93
-      b: 0.8
+      r: 1
+      g: 1
+      b: 1
       a: 1
     sprite:
       fileID: 21300000
-      guid: b9a878bca3f44c2ca712cd5c7934e00d
+      guid: 8a6774cc67184b87b50812477e3cbf95
       type: 3
+    swayWhileMoving: 0
     rank: 0
     availableAfterSeconds: 0
     spawnWeight: 65
@@ -86,13 +87,14 @@ MonoBehaviour:
     radius: 0.16
     color:
       r: 1
-      g: 0.75
-      b: 0.3
+      g: 0.94
+      b: 0.82
       a: 1
     sprite:
       fileID: 21300000
-      guid: 6a61a4d67571611c4a12ea3e316c7578
+      guid: 8a6774cc67184b87b50812477e3cbf95
       type: 3
+    swayWhileMoving: 0
     rank: 0
     availableAfterSeconds: 15
     spawnWeight: 22
@@ -114,14 +116,15 @@ MonoBehaviour:
     experience: 4
     radius: 0.29
     color:
-      r: 0.68
-      g: 0.47
+      r: 0.8
+      g: 0.87
       b: 1
       a: 1
     sprite:
       fileID: 21300000
-      guid: ceef9b08ce215c2bbb7f2552f6b5b0cd
+      guid: 8a6774cc67184b87b50812477e3cbf95
       type: 3
+    swayWhileMoving: 0
     rank: 0
     availableAfterSeconds: 30
     spawnWeight: 13
@@ -173,13 +176,14 @@ MonoBehaviour:
     radius: 0.2
     color:
       r: 1
-      g: 0.3
-      b: 0.4
+      g: 0.8
+      b: 0.8
       a: 1
     sprite:
       fileID: 21300000
-      guid: 6a61a4d67571611c4a12ea3e316c7578
+      guid: 8a6774cc67184b87b50812477e3cbf95
       type: 3
+    swayWhileMoving: 0
     rank: 0
     availableAfterSeconds: 45
     spawnWeight: 12
@@ -329,3 +333,26 @@ MonoBehaviour:
       effectPoolLimit: 48
       damageNumberPoolLimit: 24
       screenShakeMultiplier: 0.6
+  battlefieldSprite:
+    fileID: 21300000
+    guid: 914884d2eb9043658cd3a46a7b78d784
+    type: 3
+  fireIcon:
+    fileID: 21300000
+    guid: 3ea26b3b7c06437992e6bb37fc9f6735
+    type: 3
+  lightningIcon:
+    fileID: 21300000
+    guid: 4c43455c7157404091b989e804c5d29f
+    type: 3
+  iceIcon:
+    fileID: 21300000
+    guid: b79a18a44d9b4a30a84bd04b2a4fff88
+    type: 3
+  windIcon:
+    fileID: 21300000
+    guid: f5579490cae044d7a5617f2038487252
+    type: 3
+  enemySpriteMaterial: {fileID: 2100000, guid: dd3fb8bd5db84180aff17ecf4f23948e, type: 2}
+  hitFlashDuration: 0.12
+  hitFlashStrength: 0.18

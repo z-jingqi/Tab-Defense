@@ -44,7 +44,7 @@ namespace TapDefense
             this.config = config; this.run = run; this.feedback = feedback; this.crystalHit = crystalHit;
             active = new List<EnemyView>(config.enemyPoolSize);
             chains = new Queue<Blast>(config.chainQueueLimit);
-            pool = new ComponentPool<EnemyView>(prefab, config.enemyPoolSize, root, enemy => enemy.Prepare(config.squareSprite));
+            pool = new ComponentPool<EnemyView>(prefab, config.enemyPoolSize, root, enemy => enemy.Prepare(config.squareSprite, config.enemySpriteMaterial, config.hitFlashDuration, config.hitFlashStrength));
         }
         public void BindRun(RunModel model) { run = model; }
         public bool Spawn(EnemyKind kind, SpawnSettings settings)

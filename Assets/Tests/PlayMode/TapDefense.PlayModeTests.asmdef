@@ -2,7 +2,8 @@
   "name": "TapDefense.PlayModeTests",
   "references": [
     "TapDefense.Core",
-    "TapDefense.Runtime"
+    "TapDefense.Runtime",
+    "Unity.ugui"
   ],
   "optionalUnityReferences": [
     "TestAssemblies"

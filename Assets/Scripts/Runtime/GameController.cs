@@ -51,7 +51,7 @@ namespace TapDefense
         private readonly System.Random random = new System.Random();
         private float elapsed, spawnIn, shake;
         private Vector2 lastScreen;
-        private Sprite gridSprite;
+        private SpriteRenderer battlefield;
         private PresentationBudget presentation;
 
         private void Start()
@@ -177,27 +177,25 @@ namespace TapDefense
             lastScreen = new Vector2(Screen.width,Screen.height);
             float aspect = Mathf.Max(0.2f, Screen.width / (float)Mathf.Max(1,Screen.height));
             worldCamera.orthographicSize = Mathf.Max(config.arenaHalfHeight + 2.1f, (config.arenaHalfWidth + 0.25f) / aspect);
+            // Cover the camera without stretching the illustration; overscan hides shake edges.
+            if (battlefield)
+            {
+                Vector2 size = battlefield.sprite.bounds.size;
+                float overscan = Mathf.Max(0.2f, config.screenShake * 2 + 0.01f);
+                float height = worldCamera.orthographicSize * 2 + overscan * 2;
+                float width = worldCamera.orthographicSize * 2 * aspect + overscan * 2;
+                battlefield.transform.localScale = Vector3.one * Mathf.Max(width / size.x, height / size.y);
+            }
             if(enemies!=null) { enemies.Top=worldCamera.orthographicSize; enemies.Bottom=-worldCamera.orthographicSize; }
             if(bullets!=null) bullets.Top=worldCamera.orthographicSize;
         }
         private void CreateArena()
         {
-            gridSprite = Sprite.Create(Texture2D.whiteTexture,new Rect(0,0,1,1),new Vector2(0.5f,0.5f),1);
-            var root = new GameObject("Arena Grid"); root.transform.SetParent(transform,false);
-            for (int i = -6; i <= 6; i++)
-            {
-                GridLine(root.transform,new Vector2(0,i),new Vector2(config.arenaHalfWidth*2,0.012f));
-                if (Mathf.Abs(i) <= 4) GridLine(root.transform,new Vector2(i,0),new Vector2(0.012f,config.arenaHalfHeight*2));
-            }
-
+            var root = new GameObject("Grass Battlefield"); root.transform.SetParent(transform,false);
+            battlefield = root.AddComponent<SpriteRenderer>();
+            battlefield.sprite = config.battlefieldSprite;
+            battlefield.color = Color.white;
+            battlefield.sortingOrder = -30;
         }
-        private void GridLine(Transform parent,Vector2 point,Vector2 scale)
-        {
-            var line = new GameObject("Grid Line"); line.transform.SetParent(parent,false);
-            line.transform.localPosition=point; line.transform.localScale=new Vector3(scale.x,scale.y,1);
-            var renderer=line.AddComponent<SpriteRenderer>(); renderer.sprite=gridSprite;
-            renderer.color=new Color(0.15f,0.28f,0.35f,0.25f); renderer.sortingOrder=-20;
-        }
-        private void OnDestroy() { if (gridSprite) Destroy(gridSprite); }
     }
 }

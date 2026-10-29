@@ -54,6 +54,12 @@ namespace TapDefense
                 events.sendNavigationEvents = false;
             }
 
+            // Keep HUD text readable over the painted grass without tinting the battlefield.
+            Image headerBackplate = Image("Header Backplate", safe, new Color(ink.r, ink.g, ink.b, 0.32f));
+            Place(headerBackplate.rectTransform, Vector2.up, Vector2.one, Vector2.zero, new Vector2(0,320), Vector2.up);
+            Image footerBackplate = Image("Footer Backplate", safe, new Color(ink.r, ink.g, ink.b, 0.32f));
+            Place(footerBackplate.rectTransform, Vector2.zero, Vector2.right, Vector2.zero, new Vector2(0,305), Vector2.zero);
+
             Text brand = Label("Brand", safe, "T A P   D E F E N S E", 27, muted, TextAnchor.MiddleLeft);
             Place(brand.rectTransform, new Vector2(0,1), new Vector2(0,1), new Vector2(40,-48), new Vector2(740,42), new Vector2(0,0.5f));
             modeLabel = Label("Mode", safe, "", 53, Color.white, TextAnchor.MiddleLeft);
@@ -85,7 +91,11 @@ namespace TapDefense
             {
                 ElementKind kind = (ElementKind)i;
                 elementButtons[i] = Button("Element " + kind,safe,"",() => game.SelectElement(kind),out elementLabels[i]);
-                elementLabels[i].fontSize = 25;
+                elementLabels[i].fontSize = 22;
+                Center(elementLabels[i].rectTransform, -36, 158, 80);
+                Image icon = Image("Icon", elementButtons[i].transform, Color.white);
+                icon.sprite = config.ElementIcon(kind); icon.preserveAspect = true;
+                Center(icon.rectTransform, 40, 60, 60);
                 elementButtons[i].gameObject.SetActive(false);
             }
             footer = Label("Stats", safe, "", 24, muted, TextAnchor.MiddleCenter);
@@ -154,7 +164,7 @@ namespace TapDefense
                 elementButtons[i].gameObject.SetActive(charge.Unlocked);
                 if (!charge.Unlocked) continue;
                 Place(elementButtons[i].GetComponent<RectTransform>(),new Vector2(0.5f,0),new Vector2(0.5f,0),
-                    new Vector2(ElementBarLayout.Offset(visible++,run.Elements.UnlockedCount,188),110),new Vector2(168,140),new Vector2(0.5f,0.5f));
+                    new Vector2(ElementBarLayout.Offset(visible++,run.Elements.UnlockedCount,188),110),new Vector2(168,160),new Vector2(0.5f,0.5f));
                 bool selected = run.Elements.Selected == (ElementKind)i;
                 elementButtons[i].image.color = selected ? ElementAppearance.Tint((ElementKind)i) : panel;
                 elementLabels[i].color = selected ? ink : ElementAppearance.Tint((ElementKind)i);
@@ -264,6 +274,8 @@ namespace TapDefense
             Text label = rect.gameObject.AddComponent<Text>(); label.font = font; label.text = text; label.fontSize = size;
             label.color = color; label.alignment = align; label.raycastTarget = false; label.supportRichText = false;
             label.horizontalOverflow = HorizontalWrapMode.Wrap; label.verticalOverflow = VerticalWrapMode.Overflow;
+            var shadow = rect.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0,0,0,0.8f); shadow.effectDistance = new Vector2(1,-2);
             return label;
         }
         private Image Image(string name, Transform parent, Color color, bool raycast = false)

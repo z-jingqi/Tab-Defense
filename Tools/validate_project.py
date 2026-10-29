@@ -61,7 +61,7 @@ def main():
         guid_paths[identifier]=path
     parsed={}
     for path in ASSETS.rglob("*"):
-        if path.suffix in {".unity",".prefab",".asset"}:parsed[path]=documents(path)
+        if path.suffix in {".unity",".prefab",".asset",".mat"}:parsed[path]=documents(path)
     for path,objects in parsed.items():
         for object_id,value in objects.items():
             for reference in walk(value):
@@ -74,6 +74,7 @@ def main():
                     target=guid_paths[identifier]
                     if target in parsed:check("Referenced object exists: "+target.name,file_id in parsed[target])
                     elif target.suffix==".cs":check("MonoScript ID: "+target.name,file_id==11500000)
+                    elif target.suffix==".shader":check("Shader ID: "+target.name,file_id==4800000)
                     elif target.suffix==".png":check("Sprite ID: "+target.name,file_id==21300000)
                 else:check("Local reference resolves: "+path.name+" #"+str(file_id),file_id in objects)
             if "m_Component"in value:
@@ -120,9 +121,26 @@ def main():
     check("Cloud masking sprite is fully opaque",square.getchannel('A').getextrema()==(255,255))
     for name in ['README','COMBAT_AND_ELEMENTS','ENEMIES','BOSSES_AND_FOG','ACCEPTANCE']:
         check("Design document exists: "+name,(ROOT/'Docs/Design'/(name+'.md')).is_file())
-    for path in (ASSETS/"Art").glob("*.png"):
+    for field in ['battlefieldSprite', 'fireIcon', 'lightningIcon', 'iceIcon', 'windIcon']:
+        check("Battlefield art assigned: "+field, config[field]['fileID']==21300000)
+    check("Bounded soft hit flash",0.05<=config['hitFlashDuration']<=0.3 and 0<=config['hitFlashStrength']<=0.35 and config['enemySpriteMaterial']['fileID']==2100000)
+    soldier_guid=config['enemies'][0]['sprite']['guid']
+    for enemy in config['enemies']:
+        if enemy['kind']==3: continue
+        check("Static soldier assigned: "+str(enemy['kind']),enemy['sprite']['guid']==soldier_guid and enemy.get('swayWhileMoving')==0 and not enemy.get('movementAnimation',{}).get('fileID',0))
+    for path in (ASSETS/"Art").rglob("*.png"):
         image=Image.open(path);image.verify()
-        check("Valid RGBA sprite: "+path.name,image.mode=="RGBA"and image.size==(128,128))
+        check("Valid RGBA sprite: "+path.name,image.mode=="RGBA" and 0<min(image.size) and max(image.size)<=2048)
+        importer=yaml.safe_load(Path(str(path)+'.meta').read_text())['TextureImporter']
+        check("Single sprite import: "+path.name,importer['textureType']==8 and importer['spriteMode']==1)
+        check("Bounded sprite texture: "+path.name,max(image.size)<=importer['maxTextureSize'])
+        check("No sprite mip/readback copy: "+path.name,importer['mipmaps']['enableMipMap']==0 and importer['isReadable']==0)
+        if path.name in ['Soldier.png','Arrow.png','Fire.png','Lightning.png','Ice.png','Wind.png']:
+            image=Image.open(path)
+            check("Transparent foreground: "+path.name,image.getchannel('A').getextrema()==(0,255))
+            check("Transparent RGB clean: "+path.name,all(a or not (r or g or b) for r,g,b,a in zip(*[iter(image.tobytes())]*4)))
+        elif path.name=='GrassBattlefield.png':
+            check("Opaque grass battlefield",Image.open(path).getchannel('A').getextrema()==(255,255))
     for path in ASSETS.rglob("*.cs"):
         check("C# delimiter scan: "+path.name,balanced_csharp(path.read_text()))
     core="\n".join(p.read_text()for p in (ASSETS/"Scripts/Core").glob("*.cs"))

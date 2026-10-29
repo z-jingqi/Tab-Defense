@@ -8,6 +8,44 @@ namespace TapDefense.Tests
 {
  public sealed class SceneSmokeTests
  {
+  [UnityTest] public IEnumerator ArtworkCoversArenaAndIsWiredToHudAndProjectile()
+  {
+   yield return SceneManager.LoadSceneAsync("Main");yield return null;
+   var g=Object.FindFirstObjectByType<GameController>();
+   var hud=Object.FindFirstObjectByType<GameHud>();
+   var arena=g.transform.Find("Grass Battlefield").GetComponent<SpriteRenderer>();
+   var camera=Camera.main;
+   Assert.AreSame(g.Config.battlefieldSprite,arena.sprite);
+   Assert.Less(arena.sortingOrder,0);
+   Assert.GreaterOrEqual(arena.bounds.size.y,camera.orthographicSize*2);
+   Assert.GreaterOrEqual(arena.bounds.size.x,camera.orthographicSize*2*camera.aspect);
+   for(int i=0;i<4;i++)
+   {
+    var icon=hud.transform.Find("Safe Area/Element "+(ElementKind)i+"/Icon").GetComponent<UnityEngine.UI.Image>();
+    Assert.AreSame(g.Config.ElementIcon((ElementKind)i),icon.sprite);
+    Assert.IsFalse(icon.raycastTarget);Assert.IsTrue(icon.preserveAspect);
+   }
+   g.StartRun();Assert.IsTrue(g.TryAttackWorld(Vector2.zero));
+   SpriteRenderer arrow=null;
+   foreach(var renderer in g.GetComponentsInChildren<SpriteRenderer>())
+    if(renderer.name=="Pooled Arrow") { arrow=renderer;break; }
+   Assert.IsNotNull(arrow);Assert.AreSame(g.Config.arrowSprite,arrow.sprite);
+   Assert.AreEqual(Color.white,arrow.color);Assert.AreEqual(Quaternion.identity,arrow.transform.rotation);
+   var wake=arrow.transform.Find("Air Wake").GetComponent<LineRenderer>();
+   Assert.IsFalse(wake.enabled);Assert.AreEqual(0,wake.positionCount);
+   yield return null;yield return null;
+   Assert.IsTrue(wake.enabled);Assert.AreEqual(3,wake.positionCount);
+   Assert.AreSame(arrow.sharedMaterial,wake.sharedMaterial);
+   Assert.Less(wake.sortingOrder,arrow.sortingOrder);
+   Assert.Less(wake.GetPosition(2).y,wake.GetPosition(0).y);
+   Assert.Less(wake.GetPosition(0).y,arrow.transform.position.y);
+   Assert.LessOrEqual(Vector3.Distance(wake.GetPosition(0),wake.GetPosition(2)),g.Config.bulletRadius*1.8f+0.001f);
+   g.RestartRun();Assert.IsFalse(wake.enabled);Assert.AreEqual(0,wake.positionCount);
+   g.StartRun();Assert.IsTrue(g.TryAttackWorld(Vector2.right*2));
+   Assert.IsFalse(wake.enabled);Assert.AreEqual(0,wake.positionCount);
+   g.RestartRun();LogAssert.NoUnexpectedReceived();
+  }
+
   [UnityTest] public IEnumerator FirePauseLevelAndRestart()
   {
    yield return SceneManager.LoadSceneAsync("Main");yield return null;
