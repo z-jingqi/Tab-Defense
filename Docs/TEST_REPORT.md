@@ -19,6 +19,6 @@ UNITY_EDITOR="/path/to/Unity" bash Tools/run_unity_checks.sh
 
 The script rejects missing/empty/failed results. Logs and XML belong in ignored TestResults/, not in source control.
 
-Automated coverage includes core damage and upgrades, spawning and Boss defenses, fog masking, vertical arrows and firing lanes, hero movement boundaries, pause/restart, enemy assembly and melee windup/range/cooldown/death, overhead health bars, and full-width bottom experience fill/reset.
+Automated coverage includes core damage and upgrades, spawning and Boss defenses, fog masking, vertical arrows and firing lanes, hero movement boundaries, pause/restart, direct enemy pursuit and melee windup/range/cooldown/death, overhead health bars, and full-width bottom experience fill/reset.
 
-For manual acceptance, drag the hero with the editor mouse, release at both boundaries, evade enemy windups, inspect health/experience bars, pause/resume and restart after defeat. Observe a crowded assembly line and the Console. Test touch input, safe areas, background/resume and performance on actual target devices before release. Long-run Boss balance and platform builds need separate acceptance using WEB_BUILD.md and IOS_BUILD.md.
+For manual acceptance, drag the hero with the editor mouse, release at both boundaries, evade enemy windups, inspect health/experience bars, pause/resume and restart after defeat. Observe a crowded pursuit area and the Console. Test touch input, safe areas, background/resume and performance on actual target devices before release. Long-run Boss balance and platform builds need separate acceptance using WEB_BUILD.md and IOS_BUILD.md.

@@ -16,18 +16,36 @@ namespace TapDefense
         public int ExperienceReward { get; private set; }
         public Vector2 Position => transform.position;
         public bool Arrived => Definition.kind == EnemyKind.Boss && Position.y <= bossAnchor + 0.01f;
-        public bool HoldingLine { get; private set; }
-        public float AssemblyFeetY { get; set; } = -3.4f;
+        public bool PursuingHero { get; private set; }
+        public float PursuitStartFeetY { get; set; } = -3.4f;
         public Vector2 HeroFeet { get; set; }
         public Vector2 Feet => Position + Vector2.down * (Definition.radius * 0.92f);
         public float AttackCooldown { get; private set; }
         public bool WindingUp => windup > 0;
         private float windup, slashLeft;
         private SpriteRenderer attackSlash;
-        public bool CanReachHero => Mathf.Abs(Feet.x-HeroFeet.x) <= 0.65f && Vector2.Distance(Feet,HeroFeet) <= 1.95f;
+        public const float HeroGroundRadius = 0.5f;
+        public float ContactDistance => Definition.radius + HeroGroundRadius;
+        public float MeleeStopDistance => ContactDistance + 0.1f;
+        public bool CanReachHero => Vector2.Distance(Feet,HeroFeet) <= MeleeStopDistance + 0.12f;
+
+        // Foot positions define the ground plane; body height never changes the chase target.
+        public void MoveFeet(Vector2 feet)
+        {
+            feet.x = Mathf.Clamp(feet.x,-halfWidth+Definition.radius,halfWidth-Definition.radius);
+            if (PursuingHero)
+            {
+                feet.y = Mathf.Max(feet.y,HeroFeet.y+0.05f);
+                Vector2 away=feet-HeroFeet;
+                if(away.sqrMagnitude < ContactDistance*ContactDistance)
+                    feet=HeroFeet+(away.sqrMagnitude>.00001f?away.normalized:Vector2.up)*ContactDistance;
+                feet.x=Mathf.Clamp(feet.x,-halfWidth+Definition.radius,halfWidth-Definition.radius);
+            }
+            transform.position=feet+Vector2.up*(Definition.radius*0.92f);
+        }
         public bool StepMelee(float dt)
         {
-            if (Definition.kind == EnemyKind.Boss || !HoldingLine || Vitals.StaggerLeft > 0 || Health <= 0) return false;
+            if (Definition.kind == EnemyKind.Boss || !PursuingHero || Vitals.StaggerLeft > 0 || Health <= 0) return false;
             AttackCooldown = Mathf.Max(0,AttackCooldown-dt);
             if (windup > 0)
             {
@@ -81,7 +99,7 @@ namespace TapDefense
         public void Spawn(EnemyDefinition definition, SpawnSettings settings, Vector2 position, int spawnId,
             float width = 4.5f, bool summoned = false, int experience = -1, float anchor = 0)
         {
-            HoldingLine=false;windup=slashLeft=0;AttackCooldown=0;
+            PursuingHero=false;windup=slashLeft=0;AttackCooldown=0;
             SpawnId=spawnId;warning=false;bossAnchor=anchor;halfWidth=width;
             Summoned = summoned; ExperienceReward = experience >= 0 ? experience : definition.experience;
             if (!body) body = GetComponent<SpriteRenderer>();
@@ -102,17 +120,18 @@ namespace TapDefense
                 point.y = Mathf.MoveTowards(point.y,bossAnchor,Speed*movementDt);
             else
             {
-                float centerLine=AssemblyFeetY+Definition.radius*0.92f;
-                if (!HoldingLine)
+                float activationY=PursuitStartFeetY+Definition.radius*0.92f;
+                if (!PursuingHero)
                 {
-                    point.y=Mathf.MoveTowards(point.y,centerLine,Speed*movementDt);
-                    HoldingLine=point.y<=centerLine+0.001f;
+                    if(point.y>activationY) point.y=Mathf.MoveTowards(point.y,activationY,Speed*movementDt);
+                    PursuingHero=point.y<=activationY+0.001f;
                 }
-                else
+                else if(windup<=0)
                 {
-                    point.y=centerLine;
-                    if(windup<=0 && Mathf.Abs(point.x-HeroFeet.x)>0.4f)
-                        point.x=Mathf.MoveTowards(point.x,HeroFeet.x,Speed*movementDt);
+                    Vector2 feet=Feet;
+                    float distance=Vector2.Distance(feet,HeroFeet);
+                    float travel=Mathf.Min(Speed*movementDt,Mathf.Max(0,distance-MeleeStopDistance));
+                    point=Vector2.MoveTowards(feet,HeroFeet,travel)+Vector2.up*(Definition.radius*0.92f);
                 }
             }
             // Only self-directed locomotion advances walking frames. Wind-up, waiting at
@@ -123,8 +142,8 @@ namespace TapDefense
             bool locomoting = movementDt > 0 && (locomotionPoint - Position).sqrMagnitude > 0;
             point.x = Mathf.Clamp(point.x,-halfWidth+Definition.radius,halfWidth-Definition.radius);
             if (Definition.kind == EnemyKind.Boss) point.y = Mathf.Max(bossAnchor,point.y);
-            if(Definition.kind!=EnemyKind.Boss) point.y=Mathf.Max(point.y,AssemblyFeetY+Definition.radius*0.92f);
-            transform.position = point;
+            if (Definition.kind == EnemyKind.Boss) transform.position=point;
+            else MoveFeet(point-Vector2.up*(Definition.radius*0.92f));
             slashLeft=Mathf.Max(0,slashLeft-dt);
             body.sprite = movementAnimation.Step(locomoting ? movementDt : 0);
             if (movementAnimation.HasAnimation || !Definition.swayWhileMoving) transform.rotation = Quaternion.identity;

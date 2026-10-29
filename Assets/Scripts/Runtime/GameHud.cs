@@ -172,7 +172,7 @@ namespace TapDefense
             {
                 case RunState.Ready:
                     overlayTitle.text="TAP DEFENSE";
-                    overlayBody.text="Drag horizontally in the lower battlefield to move your hero.\nArrows fire straight up. Align with enemies. Enemies stop at the line, then approach and strike your hero.";
+                    overlayBody.text="Drag horizontally in the lower battlefield to move your hero.\nArrows fire straight up. Align with enemies. Enemies chase your hero when they get close, then strike in melee range.";
                     mainButtonLabel.text="START SURVIVAL";
                     overlayStats.text="Kills earn XP. Choose powers as you level up.\nSurvive as long as you can."; break;
                 case RunState.Upgrade:

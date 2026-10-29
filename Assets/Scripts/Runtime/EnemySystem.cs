@@ -23,7 +23,7 @@ namespace TapDefense
         private RunModel run;
         private readonly Action crystalHit;
         public Vector2 HeroPosition { get; set; } = new Vector2(0,-4.59f);
-        public float AssemblyFeetY => HeroPosition.y-0.49f+1.7f;
+        public float PursuitStartFeetY => HeroPosition.y-0.49f+1.7f;
         public float Top { get; set; } = 9f;
         public float Bottom { get; set; } = -9f;
         public int AliveCount => active.Count;
@@ -85,38 +85,31 @@ namespace TapDefense
             if(run.State!=RunState.Combat)return;
             for (int i = active.Count - 1; i >= 0; i--)
             {
-                var enemy = active[i];enemy.AssemblyFeetY=AssemblyFeetY;enemy.HeroFeet=HeroPosition+Vector2.down*0.49f;
+                var enemy = active[i];enemy.PursuitStartFeetY=PursuitStartFeetY;enemy.HeroFeet=HeroPosition+Vector2.down*0.49f;
                 enemy.Step(dt);
-                if(enemy.StepMelee(dt)) { run.DamagePlayer(enemy.Definition.contactDamage);crystalHit(); }
-                if (run.State == RunState.Lost) break;
             }
-            for(int pass=0;pass<2;pass++)
+            // Local ground separation avoids bodies occupying the same point, without a rail.
+            for(int pass=0;pass<3;pass++)
             for(int i=0;i<active.Count;i++)
             for(int j=i+1;j<active.Count;j++)
             {
-                var a=active[i];var b=active[j];if(!a.HoldingLine||!b.HoldingLine)continue;
-                float gap=(a.Definition.radius+b.Definition.radius)*0.7f+0.04f;
-                float dx=b.Position.x-a.Position.x;if(Mathf.Abs(dx)>=gap)continue;
-                float push=(gap-Mathf.Abs(dx))*0.5f;float sign=dx==0?(a.SpawnId<b.SpawnId?1:-1):Mathf.Sign(dx);
-                a.transform.position=new Vector3(Mathf.Clamp(a.Position.x-sign*push,-config.arenaHalfWidth+a.Definition.radius,config.arenaHalfWidth-a.Definition.radius),a.Position.y,0);
-                b.transform.position=new Vector3(Mathf.Clamp(b.Position.x+sign*push,-config.arenaHalfWidth+b.Definition.radius,config.arenaHalfWidth-b.Definition.radius),b.Position.y,0);
+                var a=active[i];var b=active[j];if(!a.PursuingHero||!b.PursuingHero)continue;
+                float gap=a.Definition.radius+b.Definition.radius+0.04f;
+                Vector2 delta=b.Feet-a.Feet;float distance=delta.magnitude;
+                if(distance>=gap)continue;
+                Vector2 direction=distance>.00001f?delta/distance:(a.SpawnId<b.SpawnId?Vector2.right:Vector2.left);
+                Vector2 push=direction*((gap-distance)*0.5f);
+                a.MoveFeet(a.Feet-push);b.MoveFeet(b.Feet+push);
+            }
+            // Check windup and strike range after separation, against this frame's hero position.
+            for(int i=active.Count-1;i>=0;i--)
+            {
+                var enemy=active[i];
+                if(enemy.StepMelee(dt)) { run.DamagePlayer(enemy.Definition.contactDamage);crystalHit(); }
+                if(run.State==RunState.Lost)break;
             }
             int budget = config.chainBlastsPerFrame;
             while (run.State == RunState.Combat && budget-- > 0 && chains.Count > 0) ApplyBlast(chains.Dequeue());
-        }
-        public bool TryFindTarget(Vector2 origin, FogOfWar fog, out Vector2 point, float laneRadius = -1)
-        {
-            point = default; float nearest = float.PositiveInfinity; bool found = false;
-            foreach (var enemy in active)
-            {
-                if (enemy.Health <= 0 || enemy.Position.y <= origin.y + 0.7f || enemy.Position.y > Top
-                    || (fog != null && fog.IsHidden(enemy.Position, enemy.Definition.radius))) continue;
-                if (laneRadius >= 0 && Mathf.Abs(enemy.Position.x-origin.x) > enemy.Definition.radius+laneRadius) continue;
-                float distance = (enemy.Position - origin).sqrMagnitude;
-                if (distance >= nearest) continue;
-                nearest = distance; point = enemy.Position; found = true;
-            }
-            return found;
         }
         // Swept segment; stable spawn IDs prevent piercing the same pooled instance twice.
         public bool HitBullet(Vector2 from, Vector2 to, ArrowAttack attack, int[] hitIds, int hitCount, out int id)

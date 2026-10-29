@@ -1,7 +1,9 @@
-# 小兵推进和攻击
+# Enemy approach and pursuit
 
-所有普通小兵沿出生 x 竖直向下，抵达集结线前不追踪英雄。集结线位于英雄脚点上方 1.7 世界单位，按小兵脚点对齐，不是屏幕底边或英雄所在水平线。
+Ordinary enemies descend vertically at their birth x until their feet reach 1.7 world units above the hero's feet. This is an invisible activation region, not a stopping rail.
 
-到线后停止下行，沿线接近英雄并作横向分离。水平偏差 <= 0.65 且脚点距离 <= 1.95 时开始 0.3 秒橙色预警，落刀重新检查距离，显示短暂刀光和英雄受伤闪光，随后冷却 1.25 秒。离开范围会取消预警。到线不回收、不自动扣血；击杀正常回收。暂停及升级不推进状态。
+Once activated, enemies continuously seek the hero's current foot position along a direct line. Movement is speed limited and stops at enemy radius + hero ground radius (0.5) + 0.1. Local two-dimensional separation prevents stacking; enemies cannot cross through the hero or move behind the bottom play area. Moving the hero updates the pursuit target every combat step.
 
-普通兵可见高度约占有效竖屏战场 10%，其余类型保留轻微体型差异，生成和边界检查使用对应半径。头顶红血条常显，按前后位置排序。
+Enemies within a further 0.12 units begin a 0.3 second orange melee warning. A strike rechecks actual distance after separation and uses a 1.25 second cooldown. Leaving range cancels the windup; pursuit resumes on the next step. Pause, upgrades, death and recycling reset or stop the appropriate state.
+
+No visible activation line is drawn. Ordinary soldiers retain the approved size and overhead red health bars.

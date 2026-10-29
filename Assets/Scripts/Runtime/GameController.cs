@@ -124,11 +124,6 @@ namespace TapDefense
             heroHealthBack.sortingOrder=190;heroHealthFill.sortingOrder=191;
             heroRenderers=hero.GetComponentsInChildren<SpriteRenderer>();heroColors=new Color[heroRenderers.Length];
             for(int i=0;i<heroColors.Length;i++)heroColors[i]=heroRenderers[i].color;
-            var guide=new GameObject("Enemy Assembly Line");guide.transform.SetParent(transform,false);
-            assemblyGuide=guide.AddComponent<SpriteRenderer>();assemblyGuide.sprite=config.squareSprite;
-            assemblyGuide.color=new Color(0.3f,0.18f,0.06f,0.22f);assemblyGuide.sortingOrder=-22;
-            Vector2 bounds=config.squareSprite.bounds.size;
-            guide.transform.localScale=new Vector3(config.arenaHalfWidth*2/bounds.x,0.035f/bounds.y,1);
         }
         private void HeroPart(string name, Vector2 position, Vector2 size, Color color, Sprite artwork = null)
         {
@@ -139,7 +134,6 @@ namespace TapDefense
         private readonly System.Random random = new System.Random();
         private float elapsed, spawnIn, shake;
         private Vector2 lastScreen;
-        private SpriteRenderer assemblyGuide;
         private float heroFlash;
         private SpriteRenderer heroHealthBack,heroHealthFill;
         private SpriteRenderer[] heroRenderers;
@@ -245,7 +239,7 @@ namespace TapDefense
             StepHeroDrag();enemies.HeroPosition=HeroPosition;
             enemies.Step(dt, elapsed);
             if (Run.State == RunState.Lost) { FinishCombat(); return; }
-            if (CooldownLeft <= 0 && enemies.TryFindTarget(HeroPosition, Fog, out Vector2 target, Run.CaptureAttack(config.bulletRadius).radius)) TryAttackWorld(target);
+            if (CooldownLeft <= 0) TryAttackWorld(HeroPosition+Vector2.up);
             bullets.Step(dt,enemies);
             if(Run.SettleExperience())
             { Choices=Run.GetChoices(random); hud.Refresh(true); }
@@ -279,7 +273,6 @@ namespace TapDefense
             float aspect = Mathf.Max(0.2f, Screen.width / (float)Mathf.Max(1,Screen.height));
             worldCamera.orthographicSize = Mathf.Max(config.arenaHalfHeight + 2.1f, (config.arenaHalfWidth + 0.25f) / aspect);
             if (hero) { hero.position = new Vector3(hero.position.x, -worldCamera.orthographicSize * 0.54f, 0); MoveHero(hero.position.x); }
-            if(assemblyGuide) assemblyGuide.transform.position=new Vector3(0,HeroPosition.y-0.49f+1.7f,0);
             if(enemies!=null) { enemies.HeroPosition=HeroPosition;enemies.Top=worldCamera.orthographicSize; enemies.Bottom=-worldCamera.orthographicSize; }
             if(bullets!=null) bullets.Top=worldCamera.orthographicSize;
         }
