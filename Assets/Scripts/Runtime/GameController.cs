@@ -52,6 +52,7 @@ namespace TapDefense
         private float elapsed, spawnIn, shake;
         private Vector2 lastScreen;
         private Sprite gridSprite;
+        private PresentationBudget presentation;
 
         private void Start()
         {
@@ -59,11 +60,12 @@ namespace TapDefense
             { Debug.LogError("Main scene references are incomplete.", this); enabled = false; return; }
             string error = config.ValidateData();
             if (error != null) { Debug.LogError(error, config); enabled = false; return; }
-            Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
+            presentation = config.presentation.ForCurrentPlayer();
+            Application.targetFrameRate = presentation.targetFrameRate; QualitySettings.vSyncCount = 0;
             Input.simulateMouseWithTouches = false;
             Screen.orientation = ScreenOrientation.Portrait;
             input = new UnityTapInput();
-            feedback.Initialize(config);
+            feedback.Initialize(config, presentation);
             Fog = gameObject.AddComponent<FogOfWar>(); Fog.Initialize(worldCamera,config.squareSprite); feedback.Fog = Fog;
             CreateArena(); bullets = new BulletSystem(config,transform); crystal.gameObject.SetActive(false); ResetRun(); hud.Initialize(this, config); FitCamera();
         }
@@ -160,7 +162,7 @@ namespace TapDefense
             if (!bullets.Fire(point, attack)) return false;
             Run.Elements.ConsumeSelected();
             CooldownLeft = Run.Cooldown;
-            shake = Mathf.Max(shake, config.screenShake); return true;
+            shake = Mathf.Max(shake, config.screenShake * presentation.screenShakeMultiplier); return true;
         }
         private void FinishCombat()
         {
@@ -169,7 +171,7 @@ namespace TapDefense
             hud.Refresh(true);
         }
         private void OnCrystalHit()
-        { feedback.PlayerHit(-worldCamera.orthographicSize+0.4f); shake = Mathf.Max(shake,config.screenShake*2); }
+        { feedback.PlayerHit(-worldCamera.orthographicSize+0.4f); shake = Mathf.Max(shake,config.screenShake * presentation.screenShakeMultiplier * 2); }
         private void FitCamera()
         {
             lastScreen = new Vector2(Screen.width,Screen.height);

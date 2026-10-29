@@ -1,18 +1,18 @@
 # iPhone 原生构建与 Xcode 安装
 
-交付不包含 IPA 或已导出的 Xcode 工程；当前环境没有 Unity 和 macOS/Xcode，以下步骤尚未执行。
+使用对应版本的 Unity iOS Build Support 导出 Xcode 工程，再在 Mac/Xcode 中完成签名、安装与归档。
 
 ## 导出
 
 1. 在 Mac 安装 Apple Xcode，并完成首次启动、许可接受和平台组件安装。
 2. 在国际版 Unity Hub 为 `6000.3.25f1` 安装 iOS Build Support。
 3. 用该 Editor 打开 `TapDefense`，确认 Console 没有编译错误。
-4. 执行 `Tap Defense > Configure Mobile Settings`。默认配置：应用名称“点击防线”、竖屏、iPhone、最低 iOS 15.0、IL2CPP、Metal、版本 0.1.0。
+4. 在 Player Settings 填写自己的应用标识符、版本、构建号和目标系统要求，再执行 `Tap Defense > Configure > iOS`，配置竖屏、IL2CPP 与 Metal。
 5. 在 `File > Build Profiles` 添加 iOS Profile 并切换到 iOS，等待重新导入。
 6. 运行 Test Runner 的 EditMode 和 PlayMode 测试，再执行 `Tap Defense > Export iOS Xcode Project`。
 7. 在 `Builds/iOS` 打开生成的 `Unity-iPhone.xcodeproj`。若实际导出包含 `.xcworkspace`，以 workspace 为准。
 
-菜单每次导出会调用 `ConfigureMobile`，将包名设为原型默认值 `com.prototype.tapdefense`。如需固定自己的包名，先修改 `Assets/Scripts/Editor/BuildAutomation.cs` 中的标识符，再导出。
+导出前检查 iOS 模块与项目配置，随后仅应用 iOS 的共享图形/脚本设置。菜单不会重置包名、版本、构建号、签名或最低系统版本；这些值在 Player Settings 中管理。不要使用原型默认标识符发布正式产品。
 
 ## 安装到 iPhone
 
@@ -31,10 +31,11 @@
 
 ```bash
 UNITY_EDITOR="/Applications/Unity/Hub/Editor/6000.3.25f1/Unity.app/Contents/MacOS/Unity"
+mkdir -p TestResults
 "$UNITY_EDITOR" -batchmode -quit -buildTarget iOS \
   -projectPath "$PWD" \
   -executeMethod TapDefense.Editor.BuildAutomation.ExportIOS \
-  -logFile "$PWD/ios-export.log"
+  -logFile "$PWD/TestResults/ios-export.log"
 ```
 
 需要归档时，在完成 Xcode 签名配置后执行，例如：
@@ -53,4 +54,4 @@ xcodebuild -project Builds/iOS/Unity-iPhone.xcodeproj \
 2. 使用 `Tap Defense > Build Android APK` 构建。
 3. 在 Android 真机安装 `Builds/Android/TapDefense.apk`，完成同一份验收清单。
 
-默认 Android 最低 API 26、ARM64、IL2CPP、OpenGLES3。目标 API 由已安装 SDK 的自动设置决定，发布前需重新确认商店要求。当前没有执行 Android 构建或真机测试。
+默认 Android 最低 API 26、ARM64、IL2CPP、OpenGLES3。目标 API 由已安装 SDK 的自动设置决定，发布前需重新确认商店要求。原生与微信均需使用各自运行时完成设备验收。

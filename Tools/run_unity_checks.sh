@@ -8,6 +8,8 @@ mkdir -p "$project_dir/TestResults"
   -executeMethod TapDefense.Editor.BuildAutomation.ValidateProject \
   -logFile "$project_dir/TestResults/validation.log"
 for test_mode in EditMode PlayMode; do
+  # A failed launch must not leave an old successful XML available to the result checker.
+  rm -f "$project_dir/TestResults/$test_mode.xml"
   "$UNITY_EDITOR" -batchmode -nographics -projectPath "$project_dir" \
     -runTests -testPlatform "$test_mode" \
     -testResults "$project_dir/TestResults/$test_mode.xml" \

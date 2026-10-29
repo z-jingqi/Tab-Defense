@@ -2,7 +2,9 @@
 
 点击发射箭矢，主动搭配火、雷、冰、风，拦截从上往下移动的敌人。
 
-Unity Technologies 国际版 Unity 6.3 LTS `6000.3.25f1`，C#，Built-in 2D，竖屏；iPhone 优先，Android 次要。工程使用简单占位资源，山海经题材与赛璐璐美术、正式元素特效留待后续制作。应用显示名“点击防线”，英文标题 `TAP DEFENSE`，默认应用标识符 `com.prototype.tapdefense`。
+Unity Technologies 国际版 Unity 6.3 LTS `6000.3.25f1`，C#，Built-in 2D，竖屏；以微信小游戏为主要发布目标，同时保留 iOS App 与 Android 构建路径。工程使用简单占位资源，山海经题材与赛璐璐美术、正式元素特效留待后续制作。应用显示名“点击防线”，英文标题 `TAP DEFENSE`，默认应用标识符 `com.prototype.tapdefense`。
+
+工程分层、平台边界见 [架构说明](Docs/ARCHITECTURE.md)，资源交付规范见 [美术与特效流程](Docs/ART_PIPELINE.md)，微信转换流程见 [WebGL 与微信构建](Docs/WEB_BUILD.md)。
 
 详细规则见 [设计文档目录](Docs/Design/README.md)：涵盖箭矢、成长、四元素、敌人路线、Boss 技能与云层信息遮蔽。
 
@@ -33,7 +35,7 @@ Unity Technologies 国际版 Unity 6.3 LTS `6000.3.25f1`，C#，Built-in 2D，�
 | 冰 | 小范围减速，累计 3 次冻结；Boss 控制减弱 | 6 秒/次 |
 | 风 | 小范围附加伤害，将目标短暂拉向命中点 | 7 秒/次 |
 
-元素使用顺序可搭配，例如风聚怪后用火、冰减速后切雷；当前没有额外的元素反应配方。已有命中数字、闪白、死亡碎片、震屏及音效保留，本轮新增基础敌人/Boss 状态提示与不透明云层占位遮罩，正式元素动画与音效之后制作。
+元素使用顺序可搭配，例如风聚怪后用火、冰减速后切雷；当前没有额外的元素反应配方。已有命中数字、闪白、死亡碎片、震屏及音效保留，包含基础敌人/Boss 状态提示与不透明云层占位遮罩，正式元素动画与音效之后制作。
 
 ## 敌人与 Boss
 
@@ -51,6 +53,7 @@ Unity Technologies 国际版 Unity 6.3 LTS `6000.3.25f1`，C#，Built-in 2D，�
 - `Progression`：基础攻击、冷却、暴击、升级增量、分裂/连射/穿透上限及连射间隔。
 - `Elements`：四元素类型、容量、补充间隔、范围、伤害比例、持续时间、灼烧/跳雷/冰冻/聚怪参数。元素类型必须唯一，排列不影响按钮顺序。
 - `Spawning / Difficulty Growth Per Minute`：普通出怪节奏、上限、倍率和难度增长。
+- `Presentation`：Web 与原生端分别配置帧率目标、视觉反馈池上限和震屏强度，不改变伤害、怪物数量或元素冷却。
 - `Enemies`：5 类敌人的生命、速度、漏怪伤害、经验、半径、身份、路线、出场时间、权重和控制抗性。普通随机权重已迁移到每个敌人定义。
 - `Bosses / Boss Profiles`：Boss 调度、驻留位置、召唤、单片云、回血、护甲、盾以及技能组合。可暂时把首次出现时间调小便于本地验证，完成后恢复 60 秒。
 - `Bullet Speed / Radius / Pool Size / Pending Burst Limit`：箭矢与待发连射池。敌人、箭矢、连射任务、基础反馈均使用固定容量池；满池时拒绝新攻击或延后待发连射。
@@ -59,9 +62,10 @@ Unity Technologies 国际版 Unity 6.3 LTS `6000.3.25f1`，C#，Built-in 2D，�
 
 ## 构建与验证
 
+- WebGL：菜单 `Tap Defense > Export WebGL Baseline`。这是浏览器基线，微信 SDK 转换与真机验收另见 [Web 构建说明](Docs/WEB_BUILD.md)。
 - iOS：菜单 `Tap Defense > Export iOS Xcode Project`，按 [iOS 构建说明](Docs/IOS_BUILD.md) 在 Mac/Xcode 签名安装。
 - Android：菜单 `Tap Defense > Build Android APK`。
 - Unity 测试：Test Runner 的 EditMode、PlayMode，或本地执行 `bash Tools/run_unity_checks.sh`。
 - 结构检查：`python3 Tools/validate_project.py`（Python 3、Pillow、PyYAML）。
 
-当前云环境未安装 Unity、C# 编译器或 Xcode，未执行 Unity 导入编译、运行测试及原生构建。见 [测试报告](Docs/TEST_REPORT.md) 与 [限制清单](Docs/KNOWN_ISSUES.md)。
+测试命令与发布验收要求见 [测试指南](Docs/TEST_REPORT.md)，产品功能边界见 [功能范围](Docs/KNOWN_ISSUES.md)。构建菜单保留 Player Settings 中的应用标识符、版本号和签名信息；发布前请填写自己的配置。

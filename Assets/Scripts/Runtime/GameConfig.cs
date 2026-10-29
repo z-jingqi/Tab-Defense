@@ -20,12 +20,15 @@ namespace TapDefense
         [Range(0,1)] public float controlResistance;
         public Color color = Color.white;
         public Sprite sprite;
+        [Tooltip("Optional movement frames. Leave empty to use the static placeholder sprite.")]
+        public SpriteAnimationClip movementAnimation;
     }
 
     [CreateAssetMenu(menuName = "Tap Defense/Game Config")]
     public sealed class GameConfig : ScriptableObject
     {
         public RunParameters progression = new RunParameters();
+        public PresentationSettings presentation = new PresentationSettings();
         public ElementDefinition[] elements = ElementDefinition.Defaults();
         [Min(1)] public int pendingBurstLimit = 24;
         public Sprite arrowSprite;
@@ -76,6 +79,7 @@ namespace TapDefense
 
         public string ValidateData()
         {
+            if (presentation == null || !presentation.IsValid) return "Invalid presentation settings.";
             if (progression == null || spawning == null || spawning.healthMultiplier <= 0 || spawning.speedMultiplier <= 0 || spawning.spawnInterval <= 0 || spawning.maxAlive <= 0 || spawning.maxAlive > enemyPoolSize || bulletSpeed <= 0 || bulletRadius <= 0 || bulletPoolSize < 1 || difficultyGrowthPerMinute < 0) return "Invalid survival settings.";
             if (pendingBurstLimit < 1 || !arrowSprite || elements == null || elements.Length != 4) return "Invalid arrow/element configuration.";
             var elementKinds = new bool[4];
@@ -94,6 +98,8 @@ namespace TapDefense
                 if (enemy == null || (int)enemy.kind < 0 || (int)enemy.kind >= 5 || seen[(int)enemy.kind]) return "Enemy kinds must be unique.";
                 seen[(int)enemy.kind] = true;
                 if (enemy.route == null || !enemy.route.IsValid || enemy.availableAfterSeconds < 0 || enemy.spawnWeight < 0 || enemy.controlResistance < 0 || enemy.controlResistance > 1 || (int)enemy.rank < 0 || (int)enemy.rank > 2 || (enemy.kind == EnemyKind.Boss) != (enemy.rank == EnemyRank.Boss)) return "Invalid enemy behavior.";
+                if (enemy.movementAnimation && enemy.movementAnimation.ValidateData() != null)
+                    return "Invalid movement animation for " + enemy.kind + ": " + enemy.movementAnimation.ValidateData();
                 if (enemy.health <= 0 || enemy.speed <= 0 || enemy.radius <= 0 || enemy.contactDamage <= 0 || enemy.experience < 0 || !enemy.sprite) return "Invalid enemy attributes.";
             }
             bool openingEnemy = false;

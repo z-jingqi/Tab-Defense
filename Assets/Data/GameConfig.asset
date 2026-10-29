@@ -318,3 +318,14 @@ MonoBehaviour:
     skills:
     - 3
     - 2
+  presentation:
+    native:
+      targetFrameRate: 60
+      effectPoolLimit: 96
+      damageNumberPoolLimit: 48
+      screenShakeMultiplier: 1
+    web:
+      targetFrameRate: 30
+      effectPoolLimit: 48
+      damageNumberPoolLimit: 24
+      screenShakeMultiplier: 0.6

@@ -14,3 +14,8 @@ TestResults/
 
 __pycache__/
 *.pyc
+
+# Developer and converter outputs; source assets belong in ArtSource/.
+*.log
+wxgame/
+wechat-game/

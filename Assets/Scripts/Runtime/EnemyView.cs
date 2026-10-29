@@ -26,6 +26,7 @@ namespace TapDefense
         private TextMesh status;
         private float flash, phase;
         private bool warning;
+        private readonly SpriteAnimationPlayback movementAnimation = new SpriteAnimationPlayback();
 
         // Called once for each pooled instance during construction, never from the hot combat loop.
         public void Prepare(Sprite square)
@@ -54,7 +55,8 @@ namespace TapDefense
             if (!body) body = GetComponent<SpriteRenderer>();
             Definition = definition; Vitals.Reset(definition.health * settings.healthMultiplier);
             Speed = definition.speed * settings.speedMultiplier;
-            body.sprite = definition.sprite; body.color = definition.color;
+            movementAnimation.Reset(definition.movementAnimation, definition.sprite);
+            body.sprite = movementAnimation.Current; body.color = definition.color;
             transform.position = position; transform.rotation = Quaternion.identity;
             transform.localScale = Vector3.one * (definition.radius * 2f);
             phase = Random.value * 6.28f; flash = 0; BossAction = ""; RefreshVisuals();
@@ -76,14 +78,25 @@ namespace TapDefense
                 RouteStep route = EnemyRoutes.Advance(Definition.route,ref routeClock,movementDt); warning = route.warning;
                 point += new Vector2(route.horizontal,-Speed*route.verticalMultiplier*movementDt);
             }
+            // Only self-directed locomotion advances walking frames. Wind-up, waiting at
+            // the boss anchor and forced displacement must not make a stationary enemy walk.
+            Vector2 locomotionPoint = point;
+            locomotionPoint.x = Mathf.Clamp(locomotionPoint.x,-halfWidth+Definition.radius,halfWidth-Definition.radius);
+            if (Definition.kind == EnemyKind.Boss) locomotionPoint.y = Mathf.Max(bossAnchor,locomotionPoint.y);
+            bool locomoting = movementDt > 0 && (locomotionPoint - Position).sqrMagnitude > 0;
             if (pullLeft > 0) point = Vector2.MoveTowards(point,pullPoint,pullSpeed*Mathf.Min(dt,pullLeft));
             point.x = Mathf.Clamp(point.x,-halfWidth+Definition.radius,halfWidth-Definition.radius);
             if (Definition.kind == EnemyKind.Boss) point.y = Mathf.Max(bossAnchor,point.y);
             transform.position = point;
             frozen = Mathf.Max(0,frozen-dt); pullLeft = Mathf.Max(0,pullLeft-dt);
             slowLeft = Mathf.Max(0,slowLeft-dt); if (slowLeft == 0) chill = 0;
-            phase += dt * (Definition.kind == EnemyKind.Fast ? 15 : 6);
-            transform.rotation = Quaternion.Euler(0,0,Mathf.Sin(phase)*12f);
+            body.sprite = movementAnimation.Step(locomoting ? movementDt : 0);
+            if (movementAnimation.HasAnimation) transform.rotation = Quaternion.identity;
+            else
+            {
+                phase += dt * (Definition.kind == EnemyKind.Fast ? 15 : 6);
+                transform.rotation = Quaternion.Euler(0,0,Mathf.Sin(phase)*12f);
+            }
             flash = Mathf.Max(0,flash-dt*6);
             body.color = Color.Lerp(warning ? new Color(1,0.3f,0.2f) : Definition.color,Color.white,flash);
             RefreshVisuals(); return burn;

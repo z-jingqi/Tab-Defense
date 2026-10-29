@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline structural checks. This does NOT compile C# or substitute for Unity tests."""
 from pathlib import Path
+import argparse
 import json
 import re
 import sys
@@ -47,6 +48,9 @@ def balanced_csharp(text):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, help="Optional JSON report path (use TestResults/).")
+    args = parser.parse_args()
     guid_paths={}
     for path in ASSETS.rglob("*"):
         if path.suffix==".meta":continue
@@ -78,6 +82,14 @@ def main():
                     check("Component points to owner: "+path.name,component.get("m_GameObject",{}).get("fileID")==object_id)
     config=parsed[ASSETS/"Data/GameConfig.asset"][11400000]
     check("No wave configuration remains", "waves" not in config)
+    presentation=config['presentation']
+    for name in ['web','native']:
+        budget=presentation[name]
+        check("Valid presentation budget: "+name,30<=budget['targetFrameRate']<=120 and budget['effectPoolLimit']>0 and budget['damageNumberPoolLimit']>0 and 0<=budget['screenShakeMultiplier']<=1)
+    build_source=(ASSETS/'Scripts/Editor/BuildAutomation.cs').read_text()
+    check("Explicit platform build entry points",all('public static void '+method+'()' in build_source for method in ['ExportWebGL','ExportIOS','BuildAndroid']))
+    check("Builds preserve release identity",all(term not in build_source for term in ['SetApplicationIdentifier(', 'PlayerSettings.bundleVersion =', 'PlayerSettings.iOS.buildNumber =', 'PlayerSettings.Android.bundleVersionCode =']))
+
     spawn=config['spawning']
     check("Valid endless spawning",spawn['spawnInterval']>0 and 0<spawn['maxAlive']<=config['enemyPoolSize'])
     check("Valid bullets",config['bulletSpeed']>0 and config['bulletRadius']>0 and config['bulletPoolSize']>0)
@@ -130,9 +142,12 @@ def main():
     check("Minimal Unity-only packages",all(name.startswith("com.unity.")for name in deps) and not any(any(term in name for term in ["ads","purchasing","services","wechat"])for name in deps))
     build=next(iter(documents(ROOT/"ProjectSettings/EditorBuildSettings.asset").values()))
     check("Main scene enabled in build",len(build["m_Scenes"])==1 and build["m_Scenes"][0]["enabled"]==1 and build["m_Scenes"][0]["path"]=="Assets/Scenes/Main.unity")
-    summary={"status":"PASS","structural_assertions":len(results),"csharp_files":len(list(ASSETS.rglob('*.cs'))),"mode":"endless vertical shooting","unity_compilation":"NOT RUN - Unity Editor unavailable","unity_tests":"NOT RUN - Unity Editor unavailable","ios_export_and_xcode":"NOT RUN - macOS/Xcode unavailable","device_playtest":"NOT RUN"}
-    output=ROOT/"Docs/StaticCheckResults.json";output.write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n")
+    summary={"status":"PASS","structural_assertions":len(results),"csharp_files":len(list(ASSETS.rglob('*.cs'))),"scope":"Asset/configuration structure and C# delimiters only"}
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n")
     print(json.dumps(summary,ensure_ascii=False,indent=2))
+
 
 
 if __name__=="__main__":

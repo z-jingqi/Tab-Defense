@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build;
@@ -18,35 +17,59 @@ namespace TapDefense.Editor
         public static void OpenMain()
         { if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) EditorSceneManager.OpenScene(MainScene); }
 
+        // Shared presentation settings only. Release identity, versions, signing and SDK
+        // requirements stay in Player Settings and are never replaced by a build command.
         [MenuItem("Tap Defense/Configure Mobile Settings")]
         public static void ConfigureMobile()
         {
-            PlayerSettings.companyName = "Prototype Studio"; PlayerSettings.productName = "点击防线";
-            PlayerSettings.bundleVersion = "0.1.0";
+            ConfigurePortrait();
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tap Defense/Configure/WebGL Baseline")]
+        public static void ConfigureWebGL()
+        {
+            ConfigurePortrait();
+            ConfigureManagedCode(NamedBuildTarget.WebGL);
+            // Unity's Web default is WebGL2. Do not opt into experimental WebGPU.
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, true);
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tap Defense/Configure/iOS")]
+        public static void ConfigureIOS()
+        {
+            ConfigurePortrait();
+            ConfigureManagedCode(NamedBuildTarget.iOS);
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.iOS, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.iOS, new[] { GraphicsDeviceType.Metal });
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tap Defense/Configure/Android")]
+        public static void ConfigureAndroid()
+        {
+            ConfigurePortrait();
+            ConfigureManagedCode(NamedBuildTarget.Android);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.OpenGLES3 });
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void ConfigurePortrait()
+        {
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.allowedAutorotateToPortrait = true;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
             PlayerSettings.allowedAutorotateToLandscapeLeft = false;
             PlayerSettings.allowedAutorotateToLandscapeRight = false;
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.prototype.tapdefense");
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.prototype.tapdefense");
-            PlayerSettings.SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP);
-            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
-            PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.iOS, ManagedStrippingLevel.Low);
-            PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.Android, ManagedStrippingLevel.Low);
-            PlayerSettings.iOS.targetOSVersionString = "15.0";
-            PlayerSettings.iOS.buildNumber = "1";
-            PlayerSettings.iOS.targetDevice = iOSTargetDevice.iPhoneOnly;
-            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
-            PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
-            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
-            PlayerSettings.Android.bundleVersionCode = 1;
-            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.iOS, false);
-            PlayerSettings.SetGraphicsAPIs(BuildTarget.iOS, new[] { GraphicsDeviceType.Metal });
-            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
-            PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.OpenGLES3 });
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(MainScene, true) };
-            AssetDatabase.SaveAssets();
+        }
+
+        private static void ConfigureManagedCode(NamedBuildTarget target)
+        {
+            PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.IL2CPP);
+            PlayerSettings.SetManagedStrippingLevel(target, ManagedStrippingLevel.Low);
         }
 
         [MenuItem("Tap Defense/Validate Project")]
@@ -63,31 +86,63 @@ namespace TapDefense.Editor
             Debug.Log("Tap Defense: survival configuration, sprites, scene and prefabs validated.");
         }
 
+        [MenuItem("Tap Defense/Export WebGL Baseline")]
+        public static void ExportWebGL()
+        {
+            PrepareBuild(BuildTarget.WebGL);
+            ConfigureWebGL();
+            Build(BuildTarget.WebGL, "Builds/WebGL");
+            Debug.Log("WebGL baseline exported. WeChat conversion, SDK configuration and device validation are separate steps.");
+        }
+
         [MenuItem("Tap Defense/Export iOS Xcode Project")]
         public static void ExportIOS()
         {
-            ConfigureMobile(); ValidateProject();
+            PrepareBuild(BuildTarget.iOS);
+            ConfigureIOS();
             Build(BuildTarget.iOS, "Builds/iOS");
         }
+
         [MenuItem("Tap Defense/Build Android APK")]
         public static void BuildAndroid()
         {
-            ConfigureMobile(); ValidateProject();
-            EditorUserBuildSettings.buildAppBundle = false;
-            Build(BuildTarget.Android, "Builds/Android/TapDefense.apk");
+            PrepareBuild(BuildTarget.Android);
+            ConfigureAndroid();
+            bool previousBuildAppBundle = EditorUserBuildSettings.buildAppBundle;
+            try
+            {
+                EditorUserBuildSettings.buildAppBundle = false;
+                Build(BuildTarget.Android, "Builds/Android/TapDefense.apk");
+            }
+            finally
+            {
+                EditorUserBuildSettings.buildAppBundle = previousBuildAppBundle;
+            }
         }
+
+        private static void PrepareBuild(BuildTarget target)
+        {
+            // Check prerequisites before changing project settings or writing build output.
+            BuildTargetGroup group = BuildPipeline.GetBuildTargetGroup(target);
+            if (!BuildPipeline.IsBuildTargetSupported(group, target))
+                throw new BuildFailedException("Install the Unity Hub build-support module for " + target);
+            ValidateProject();
+        }
+
         private static void Build(BuildTarget target, string output)
         {
-            output=Path.GetFullPath(Path.Combine(Application.dataPath,"..",output));
-            BuildTargetGroup group = BuildPipeline.GetBuildTargetGroup(target);
-            if (!BuildPipeline.IsBuildTargetSupported(group, target)) throw new BuildFailedException("Install the Unity Hub build-support module for " + target);
+            output = Path.GetFullPath(Path.Combine(Application.dataPath, "..", output));
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? "Builds");
             BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new[] { MainScene }, locationPathName = output, target = target, options = BuildOptions.None
+                scenes = new[] { MainScene },
+                locationPathName = output,
+                target = target,
+                options = BuildOptions.None
             });
-            if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Build failed: " + report.summary.result);
-            Debug.Log("Build succeeded: " + Path.GetFullPath(output));
+            if (report.summary.result != BuildResult.Succeeded)
+                throw new BuildFailedException("Build failed: " + report.summary.result);
+            Debug.Log("Build succeeded: " + output);
         }
     }
     public sealed class ValidateBeforeBuild : IPreprocessBuildWithReport

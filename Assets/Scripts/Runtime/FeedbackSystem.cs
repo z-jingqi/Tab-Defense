@@ -22,11 +22,12 @@ namespace TapDefense
         private bool Hidden(Vector2 point, float radius = 0)
         { if (Fog && Fog.IsHidden(point,radius)) { SuppressedEvents++; return true; } return false; }
 
-        public void Initialize(GameConfig settings)
+        public void Initialize(GameConfig settings, PresentationBudget budget = null)
         {
             config = settings;
-            effects = new ComponentPool<PulseEffect>(effectPrefab, config.effectPoolSize, transform);
-            numbers = new ComponentPool<DamageNumber>(numberPrefab, config.numberPoolSize, transform);
+            budget = budget ?? config.presentation.ForCurrentPlayer();
+            effects = new ComponentPool<PulseEffect>(effectPrefab, Mathf.Min(config.effectPoolSize, budget.effectPoolLimit), transform);
+            numbers = new ComponentPool<DamageNumber>(numberPrefab, Mathf.Min(config.numberPoolSize, budget.damageNumberPoolLimit), transform);
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             audioSource = gameObject.AddComponent<AudioSource>(); audioSource.playOnAwake = false;
             tapClip = Tone(155, 65, 0.08f); killClip = Tone(400, 700, 0.06f); hurtClip = Tone(110, 45, 0.2f);

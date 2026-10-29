@@ -1,0 +1,19 @@
+name: Project structure
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r Tools/requirements.txt
+      - run: python Tools/validate_project.py
+      - run: python -m unittest discover -s Tools/tests -v
+      - run: bash -n Tools/run_unity_checks.sh
+      - run: git diff --exit-code
