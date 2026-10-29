@@ -27,6 +27,8 @@ namespace TapDefense
         public float Bottom { get; set; } = -9f;
         public int AliveCount => active.Count;
         public int AliveBosses { get; private set; }
+        public int AliveSummons { get; private set; }
+        public event Action<EnemyView> BossRemoved;
         public float BossHealthFraction
         {
             get
@@ -42,25 +44,37 @@ namespace TapDefense
             this.config = config; this.run = run; this.feedback = feedback; this.crystalHit = crystalHit;
             active = new List<EnemyView>(config.enemyPoolSize);
             chains = new Queue<Blast>(config.chainQueueLimit);
-            pool = new ComponentPool<EnemyView>(prefab, config.enemyPoolSize, root);
+            pool = new ComponentPool<EnemyView>(prefab, config.enemyPoolSize, root, enemy => enemy.Prepare(config.squareSprite));
         }
         public void BindRun(RunModel model) { run = model; }
         public bool Spawn(EnemyKind kind, SpawnSettings settings)
         {
-            if (active.Count >= settings.maxAlive) return false;
-            EnemyView enemy = pool.Rent(); if (!enemy) return false;
-            Vector2 point = new Vector2(Random.Range(-config.arenaHalfWidth,config.arenaHalfWidth), Top + config.Enemy(kind).radius);
-            enemy.Spawn(config.Enemy(kind), settings, point, ++nextSpawnId); active.Add(enemy);
-            if (kind == EnemyKind.Boss) AliveBosses++;
-            return true;
+            if (kind == EnemyKind.Boss || active.Count - AliveBosses - AliveSummons >= settings.maxAlive) return false;
+            var definition = config.Enemy(kind);
+            Vector2 point = new Vector2(Random.Range(-config.arenaHalfWidth,config.arenaHalfWidth),Top + definition.radius);
+            return SpawnAt(kind,settings,point) != null;
+        }
+        public EnemyView SpawnBoss(SpawnSettings settings, float anchor)
+        {
+            if (AliveBosses > 0) return null;
+            return SpawnAt(EnemyKind.Boss,settings,new Vector2(0,Top+config.Enemy(EnemyKind.Boss).radius),false,-1,anchor);
+        }
+        public EnemyView SpawnAt(EnemyKind kind, SpawnSettings settings, Vector2 point,
+            bool summoned = false, int experience = -1, float anchor = 0)
+        {
+            if (kind == EnemyKind.Boss && AliveBosses > 0) return null;
+            EnemyView enemy = pool.Rent(); if (!enemy) return null;
+            enemy.Spawn(config.Enemy(kind),settings,point,++nextSpawnId,config.arenaHalfWidth,summoned,experience,anchor);
+            active.Add(enemy); if (kind == EnemyKind.Boss) AliveBosses++; if (summoned) AliveSummons++;
+            return enemy;
         }
         public void Step(float dt, float elapsed)
         {
             for (int i = active.Count - 1; i >= 0; i--)
             {
                 var enemy = active[i]; float burn = enemy.Step(dt);
-                if (burn > 0 && DamageAt(i, burn, 0)) continue;
-                if (enemy.Position.y + enemy.Definition.radius >= Bottom) continue;
+                if (burn > 0 && DamageAt(i, burn, 0, DamageSource.Burn).killed) continue;
+                if (enemy.Definition.kind == EnemyKind.Boss || enemy.Position.y + enemy.Definition.radius >= Bottom) continue;
                 run.DamagePlayer(enemy.Definition.contactDamage); crystalHit();
                 Despawn(i);
                 if (run.State == RunState.Lost) break;
@@ -87,21 +101,22 @@ namespace TapDefense
             if (target < 0) return false;
             id = active[target].SpawnId; Vector2 point = active[target].Position;
             float damage = attack.damage * (Random.value < attack.criticalChance ? attack.criticalMultiplier : 1);
-            DamageAt(target, damage, 0);
-            ApplyElement(attack.element, point, attack.damage, id);
+            DamageResult result = DamageAt(target, damage, 0, DamageSource.Arrow);
+            if (!result.blocked) ApplyElement(attack.element, point, attack.damage, id);
             return true;
         }
-        private bool DamageAt(int index, float damage, int depth)
+        private DamageResult DamageAt(int index, float damage, int depth, DamageSource source = DamageSource.Area)
         {
             var enemy = active[index];
-            feedback.Hit(enemy.Position, Mathf.Min(enemy.Health, damage), depth > 0);
-            if (!enemy.Hit(damage)) return false;
+            DamageResult result = enemy.Receive(damage,source);
+            if (result.bodyDamage > 0) feedback.Hit(enemy.Position,result.bodyDamage,depth > 0);
+            if (!result.killed) return result;
             Vector2 point = enemy.Position;
             feedback.Death(point, enemy.Definition.color, enemy.Definition.radius);
-            run.RecordKill(enemy.Definition.experience); Despawn(index);
+            run.RecordKill(enemy.ExperienceReward); Despawn(index);
             if (run.ChainStacks > 0 && depth < run.ChainMaxDepth && chains.Count < config.chainQueueLimit)
                 chains.Enqueue(new Blast { position = point, radius = run.ChainRadius, damage = run.ChainDamage, depth = depth + 1 });
-            return true;
+            return result;
         }
         private void ApplyElement(ElementKind kind, Vector2 point, float damage, int primaryId)
         {
@@ -150,10 +165,13 @@ namespace TapDefense
         private void Despawn(int index)
         {
             EnemyView enemy = active[index];
-            if (enemy.Definition.kind == EnemyKind.Boss) AliveBosses--;
+            bool boss = enemy.Definition.kind == EnemyKind.Boss;
+            if (boss) AliveBosses--;
+            if (enemy.Summoned) AliveSummons--;
             int last = active.Count - 1; active[index] = active[last]; active.RemoveAt(last); pool.Return(enemy);
+            if (boss) BossRemoved?.Invoke(enemy);
         }
         public void Clear()
-        { active.Clear(); chains.Clear(); pool.ReturnAll(); AliveBosses = 0; }
+        { active.Clear(); chains.Clear(); pool.ReturnAll(); AliveBosses = 0; AliveSummons = 0; }
     }
 }

@@ -8,13 +8,13 @@ namespace TapDefense
     {
         private readonly Stack<T> free;
         private readonly List<T> all;
-        public ComponentPool(T prefab, int capacity, Transform parent)
+        public ComponentPool(T prefab, int capacity, Transform parent, System.Action<T> prepare = null)
         {
             free = new Stack<T>(capacity); all = new List<T>(capacity);
             for (int i = 0; i < capacity; i++)
             {
                 T item = Object.Instantiate(prefab, parent);
-                item.gameObject.SetActive(false);
+                item.gameObject.SetActive(false); prepare?.Invoke(item);
                 all.Add(item); free.Push(item);
             }
         }

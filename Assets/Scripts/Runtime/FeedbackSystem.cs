@@ -17,6 +17,10 @@ namespace TapDefense
         private AudioClip tapClip, killClip, hurtClip;
         private float killSoundReady;
         public bool SoundEnabled { get; set; } = true;
+        public FogOfWar Fog { get; set; }
+        public int SuppressedEvents { get; private set; }
+        private bool Hidden(Vector2 point, float radius = 0)
+        { if (Fog && Fog.IsHidden(point,radius)) { SuppressedEvents++; return true; } return false; }
 
         public void Initialize(GameConfig settings)
         {
@@ -48,18 +52,22 @@ namespace TapDefense
         }
         public void Blast(Vector2 position, float radius, bool chain)
         {
+            if (Hidden(position,radius)) return;
             Color tint = chain ? new Color(1f, 0.55f, 0.22f) : new Color(0.25f, 1f, 0.85f);
             Emit(config.circleSprite, position, new Color(tint.r, tint.g, tint.b, 0.25f), radius * 1.8f, radius * 2f, 0.14f, Vector2.zero);
+            if (Hidden(position,radius)) return;
             Emit(config.ringSprite, position, tint, radius * 0.55f, radius * 2f, 0.27f, Vector2.zero);
             if (!chain && SoundEnabled) audioSource.PlayOneShot(tapClip, 0.7f);
         }
         public void Hit(Vector2 position, float damage, bool chain)
         {
+            if (Hidden(position,0.25f)) return;
             DamageNumber number = numbers.Rent(); if (!number) return;
             number.Play(position, damage, chain ? new Color(1, 0.7f, 0.3f) : Color.white, font); activeNumbers.Add(number);
         }
         public void Death(Vector2 position, Color tint, float radius)
         {
+            if (Hidden(position,radius)) return;
             Emit(config.ringSprite, position, tint, radius * 2, radius * 4, 0.23f, Vector2.zero);
             for (int i = 0; i < 3; i++)
                 Emit(config.diamondSprite, position, tint, radius * 0.7f, 0, 0.3f, Random.insideUnitCircle * 1.7f);

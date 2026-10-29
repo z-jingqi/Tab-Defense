@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace TapDefense.Core
 {
     public enum RunState { Ready, Combat, Upgrade, Lost }
-    public enum EnemyKind { Normal, Fast, Tank, Boss }
+    public enum EnemyKind { Normal, Fast, Tank, Boss, Charger }
     public enum UpgradeKind { Damage, Radius, Cooldown, Chain, MaxHealth, Heal,
         MultiShot, Pierce, Burst, CriticalChance, CriticalDamage, UnlockFire, UnlockLightning, UnlockIce, UnlockWind }
 
@@ -48,18 +48,7 @@ namespace TapDefense.Core
         public int maxAlive = 150;
         public float healthMultiplier = 1f;
         public float speedMultiplier = 1f;
-        public int normalWeight = 65;
-        public int fastWeight = 22;
-        public int tankWeight = 13;
 
-        public EnemyKind PickEnemy(Random random)
-        {
-            int total = Math.Max(0, normalWeight) + Math.Max(0, fastWeight) + Math.Max(0, tankWeight);
-            if (total <= 0) return EnemyKind.Normal;
-            int pick = random.Next(total);
-            if (pick < normalWeight) return EnemyKind.Normal;
-            return pick < normalWeight + fastWeight ? EnemyKind.Fast : EnemyKind.Tank;
-        }
     }
 
     // Engine-free run rules. Rendering, input, spawning and platform services live elsewhere.

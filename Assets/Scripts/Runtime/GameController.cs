@@ -26,6 +26,26 @@ namespace TapDefense
         public float BossHealthFraction => enemies == null ? 0 : enemies.BossHealthFraction;
         private SpawnSettings spawnSettings = new SpawnSettings();
         private BulletSystem bullets;
+        private BossDirector bossDirector;
+        public FogOfWar Fog { get; private set; }
+        public BossDirector Bosses => bossDirector;
+        public bool BossInformationVisible => bossDirector != null && bossDirector.ActiveBoss
+            && !Fog.IsHidden(bossDirector.ActiveBoss.Position,bossDirector.ActiveBoss.Definition.radius);
+        public string BossDisplay
+        {
+            get
+            {
+                if (!BossInformationVisible) return "";
+                var boss = bossDirector.ActiveBoss; var v = boss.Vitals;
+                string text = bossDirector.Title;
+                if (v.Shield > 0) text += "   SHIELD " + Mathf.CeilToInt(v.Shield);
+                if (v.Armor > 0) text += "   ARMOR " + v.Armor;
+                if (v.StaggerLeft > 0) text += "   STAGGER";
+                else if (v.Healing) text += "   HEALING";
+                else if (!string.IsNullOrEmpty(boss.BossAction)) text += "   " + boss.BossAction;
+                return text;
+            }
+        }
         private EnemySystem enemies;
         private ITapInput input;
         private readonly System.Random random = new System.Random();
@@ -44,6 +64,7 @@ namespace TapDefense
             Screen.orientation = ScreenOrientation.Portrait;
             input = new UnityTapInput();
             feedback.Initialize(config);
+            Fog = gameObject.AddComponent<FogOfWar>(); Fog.Initialize(worldCamera,config.squareSprite); feedback.Fog = Fog;
             CreateArena(); bullets = new BulletSystem(config,transform); crystal.gameObject.SetActive(false); ResetRun(); hud.Initialize(this, config); FitCamera();
         }
         private void ResetRun()
@@ -53,6 +74,8 @@ namespace TapDefense
             // Reuse the original pool on restart by rebinding the model, avoiding a new set of objects.
             if (enemies == null) enemies = new EnemySystem(config, enemyPrefab, transform, Run, feedback, OnCrystalHit);
             else enemies.BindRun(Run);
+            if (bossDirector == null) bossDirector = new BossDirector(config,enemies,Fog,feedback);
+            bossDirector.Reset();
             Choices = Array.Empty<UpgradeKind>();
             bullets.Clear(); CooldownLeft = 0; elapsed = 0; shake = 0; Paused = false;
             feedback.Clear(); crystal.ResetVisual(); worldCamera.transform.position = new Vector3(0,0,-10);
@@ -108,7 +131,7 @@ namespace TapDefense
         }
         private void StepCombat(float dt)
         {
-            Run.Elements.Step(dt);
+            Fog.Step(dt); Run.Elements.Step(dt);
             elapsed += dt; CooldownLeft = Mathf.Max(0, CooldownLeft - dt);
             float scale=1+elapsed/60f*config.difficultyGrowthPerMinute;
             spawnSettings.healthMultiplier=config.spawning.healthMultiplier*scale;
@@ -116,7 +139,9 @@ namespace TapDefense
             spawnSettings.maxAlive=config.spawning.maxAlive;
             spawnIn-=dt;
             if(spawnIn<=0)
-            { spawnIn=config.spawning.spawnInterval/Mathf.Min(3f,scale); enemies.Spawn(config.spawning.PickEnemy(random),spawnSettings); }
+            { spawnIn=config.spawning.spawnInterval/Mathf.Min(3f,scale);
+                if (config.PickEnemy(elapsed,random,out EnemyKind kind)) enemies.Spawn(kind,spawnSettings); }
+            bossDirector.Step(dt,spawnSettings);
             enemies.Step(dt, elapsed);
             if (Run.State == RunState.Lost) { FinishCombat(); return; }
             if (input.TryGetTap(out Vector2 screen) && Screen.safeArea.Contains(screen) && !hud.BlocksTap(screen))
@@ -139,7 +164,7 @@ namespace TapDefense
         }
         private void FinishCombat()
         {
-            enemies.Clear(); bullets.Clear(); feedback.Clear(); CooldownLeft = 0; shake = 0;
+            enemies.Clear(); bossDirector.Stop(); bullets.Clear(); feedback.Clear(); CooldownLeft = 0; shake = 0;
             worldCamera.transform.position = new Vector3(0,0,-10);
             hud.Refresh(true);
         }

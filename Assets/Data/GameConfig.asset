@@ -64,6 +64,20 @@ MonoBehaviour:
       fileID: 21300000
       guid: b9a878bca3f44c2ca712cd5c7934e00d
       type: 3
+    rank: 0
+    availableAfterSeconds: 0
+    spawnWeight: 65
+    controlResistance: 0
+    route:
+      kind: 0
+      amplitude: 0.65
+      period: 2.4
+      moveSeconds: 1.6
+      stopSeconds: 0.65
+      cruiseSeconds: 2.0
+      windupSeconds: 0.7
+      dashSeconds: 0.45
+      dashMultiplier: 3.2
   - kind: 1
     health: 13.0
     speed: 1.05
@@ -79,6 +93,20 @@ MonoBehaviour:
       fileID: 21300000
       guid: 6a61a4d67571611c4a12ea3e316c7578
       type: 3
+    rank: 0
+    availableAfterSeconds: 15
+    spawnWeight: 22
+    controlResistance: 0
+    route:
+      kind: 1
+      amplitude: 0.65
+      period: 2.4
+      moveSeconds: 1.6
+      stopSeconds: 0.65
+      cruiseSeconds: 2.0
+      windupSeconds: 0.7
+      dashSeconds: 0.45
+      dashMultiplier: 3.2
   - kind: 2
     health: 72.0
     speed: 0.43
@@ -94,11 +122,25 @@ MonoBehaviour:
       fileID: 21300000
       guid: ceef9b08ce215c2bbb7f2552f6b5b0cd
       type: 3
+    rank: 0
+    availableAfterSeconds: 30
+    spawnWeight: 13
+    controlResistance: 0
+    route:
+      kind: 2
+      amplitude: 0.65
+      period: 2.4
+      moveSeconds: 1.6
+      stopSeconds: 0.65
+      cruiseSeconds: 2.0
+      windupSeconds: 0.7
+      dashSeconds: 0.45
+      dashMultiplier: 3.2
   - kind: 3
-    health: 340.0
-    speed: 0.24
+    health: 900
+    speed: 0.9
     contactDamage: 9.0
-    experience: 40
+    experience: 60
     radius: 0.65
     color:
       r: 1
@@ -109,6 +151,49 @@ MonoBehaviour:
       fileID: 21300000
       guid: d9f1a52c7a823ade907c5544b0aa8ce8
       type: 3
+    rank: 2
+    availableAfterSeconds: 0
+    spawnWeight: 0
+    controlResistance: 0.6
+    route:
+      kind: 0
+      amplitude: 0.65
+      period: 2.4
+      moveSeconds: 1.6
+      stopSeconds: 0.65
+      cruiseSeconds: 2.0
+      windupSeconds: 0.7
+      dashSeconds: 0.45
+      dashMultiplier: 3.2
+  - kind: 4
+    health: 32.0
+    speed: 0.7
+    contactDamage: 7.0
+    experience: 3
+    radius: 0.2
+    color:
+      r: 1
+      g: 0.3
+      b: 0.4
+      a: 1
+    sprite:
+      fileID: 21300000
+      guid: 6a61a4d67571611c4a12ea3e316c7578
+      type: 3
+    rank: 0
+    availableAfterSeconds: 45
+    spawnWeight: 12
+    controlResistance: 0
+    route:
+      kind: 3
+      amplitude: 0.65
+      period: 2.4
+      moveSeconds: 1.6
+      stopSeconds: 0.65
+      cruiseSeconds: 2.0
+      windupSeconds: 0.7
+      dashSeconds: 0.45
+      dashMultiplier: 3.2
   arenaHalfWidth: 4.5
   arenaHalfHeight: 6.4
   crystalRadius: 0.48
@@ -140,15 +225,15 @@ MonoBehaviour:
     maxAlive: 150
     healthMultiplier: 1.0
     speedMultiplier: 1.0
-    normalWeight: 65
-    fastWeight: 22
-    tankWeight: 13
   bulletSpeed: 11.0
   bulletRadius: 0.13
   bulletPoolSize: 96
   difficultyGrowthPerMinute: 0.15
   pendingBurstLimit: 24
-  arrowSprite: {fileID: 21300000, guid: 907ed45b1cf31fdb1e7993558dc4a62a, type: 3}
+  arrowSprite:
+    fileID: 21300000
+    guid: 907ed45b1cf31fdb1e7993558dc4a62a
+    type: 3
   elements:
   - kind: 0
     capacity: 3
@@ -198,3 +283,38 @@ MonoBehaviour:
     freezeHits: 3
     freezeSeconds: 0.6
     pullSpeed: 1.6
+  bosses:
+    enabled: 1
+    firstSpawnSeconds: 60
+    repeatSeconds: 90
+    anchorFromTop: 0.42
+    initialSkillDelay: 3
+    telegraphSeconds: 0.9
+    skillInterval: 4
+    summonCount: 4
+    summonAliveLimit: 12
+    summonExperience: 0
+    summonKind: 0
+    cloudSeconds: 6
+    cloudWidth: 0.65
+    cloudHeight: 0.26
+    healSeconds: 3
+    healPerSecond: 0.06
+    healInterruptFraction: 0.08
+    armorLayers: 8
+    shieldHealth: 180
+    shieldSeconds: 7
+    staggerSeconds: 1.5
+  bossProfiles:
+  - title: WARDEN
+    skills:
+    - 0
+    - 4
+  - title: MISTCALLER
+    skills:
+    - 0
+    - 1
+  - title: REVENANT
+    skills:
+    - 3
+    - 2

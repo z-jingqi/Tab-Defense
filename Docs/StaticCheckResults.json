@@ -1,7 +1,7 @@
 {
   "status": "PASS",
-  "structural_assertions": 294,
-  "csharp_files": 19,
+  "structural_assertions": 346,
+  "csharp_files": 25,
   "mode": "endless vertical shooting",
   "unity_compilation": "NOT RUN - Unity Editor unavailable",
   "unity_tests": "NOT RUN - Unity Editor unavailable",

@@ -86,7 +86,28 @@ def main():
         check("Valid element charges "+str(e['kind']),e['capacity']>0 and e['rechargeSeconds']>0 and e['radius']>0 and 1<=e['lightningTargets']<=8)
     check("Arrow sprite assigned",config['arrowSprite']['fileID']==21300000)
     check("Bounded burst pool",config['pendingBurstLimit']>0 and config['progression']['maxArrows']<=config['bulletPoolSize'])
-    check("Four enemy archetypes",len(config['enemies'])==4)
+    check("Five unique enemy archetypes",len(config['enemies'])==5 and {e['kind'] for e in config['enemies']}==set(range(5)))
+    for enemy in config['enemies']:
+        route=enemy['route']
+        check("Valid enemy behavior "+str(enemy['kind']),enemy['availableAfterSeconds']>=0 and enemy['spawnWeight']>=0 and 0<=enemy['controlResistance']<=1 and 0<=enemy['rank']<=2)
+        check("Valid route "+str(enemy['kind']),route['kind'] in range(4) and route['amplitude']>=0 and all(route[key]>0 for key in ['period','moveSeconds','cruiseSeconds','windupSeconds','dashSeconds','dashMultiplier']) and route['stopSeconds']>=0)
+        check("Valid enemy attributes "+str(enemy['kind']),all(enemy[key]>0 for key in ['health','speed','radius','contactDamage']) and enemy['experience']>=0)
+    check("Opening enemy exists",any(e['kind']!=3 and e['availableAfterSeconds']==0 and e['spawnWeight']>0 for e in config['enemies']))
+    check("Boss excluded from normal random pool",next(e for e in config['enemies'] if e['kind']==3)['spawnWeight']==0)
+    boss=config['bosses']
+    check("Single cloud restricted to top third",0<boss['cloudHeight']<=1/3 and 0.05<=boss['cloudWidth']<=0.95 and boss['cloudSeconds']>0)
+    check("Boss anchors in upper half below cloud cap",1/3<boss['anchorFromTop']<0.5)
+    check("Valid boss schedule",boss['firstSpawnSeconds']>0 and boss['repeatSeconds']>0 and boss['telegraphSeconds']>0 and boss['skillInterval']>0)
+    check("Bounded summons",0<boss['summonCount']<=32 and boss['summonAliveLimit']>0 and boss['summonKind'] in [0,1,2,4] and boss['summonExperience']>=0)
+    check("Valid defenses",boss['shieldHealth']>0 and boss['shieldSeconds']>0 and 0<boss['armorLayers']<=100 and boss['staggerSeconds']>0 and 0<boss['healInterruptFraction']<=1 and 0<boss['healPerSecond']<=1 and boss['healSeconds']>0)
+    profiles=config['bossProfiles']
+    check("All five boss skills configured",{s for profile in profiles for s in profile['skills']}==set(range(5)))
+    for profile in profiles:
+        check("Nonempty boss profile: "+profile['title'],bool(profile['title']) and bool(profile['skills']) and all(s in range(5) for s in profile['skills']))
+    square=Image.open(ASSETS/'Art/Square.png')
+    check("Cloud masking sprite is fully opaque",square.getchannel('A').getextrema()==(255,255))
+    for name in ['README','COMBAT_AND_ELEMENTS','ENEMIES','BOSSES_AND_FOG','ACCEPTANCE']:
+        check("Design document exists: "+name,(ROOT/'Docs/Design'/(name+'.md')).is_file())
     for path in (ASSETS/"Art").glob("*.png"):
         image=Image.open(path);image.verify()
         check("Valid RGBA sprite: "+path.name,image.mode=="RGBA"and image.size==(128,128))

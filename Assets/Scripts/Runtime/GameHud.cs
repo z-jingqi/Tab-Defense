@@ -132,6 +132,7 @@ namespace TapDefense
         {
             if (!game || game.Run == null) return;
             RunModel run = game.Run;
+            if (!game.BossInformationVisible && bossBar) bossBar.SetActive(false);
             bool changed = previousState != run.State || previousPaused != game.Paused || previousPending != run.PendingUpgrades;
             if (!force && !changed && Time.unscaledTime < refreshAt) return;
             refreshAt = Time.unscaledTime + 0.08f;
@@ -164,8 +165,8 @@ namespace TapDefense
             footer.text = "DMG " + Mathf.RoundToInt(run.Damage) + "    SIZE " + run.Radius.ToString("0.00") + "    CD " + run.Cooldown.ToString("0.00") + "s    CHAIN " + run.ChainStacks;
             combo.text = Time.unscaledTime < toastUntil ? toast : (run.State == RunState.Combat ? "ENEMIES MOVE DOWN / SHOTS MOVE UP" : "");
             powerToast.text = Time.unscaledTime < toastUntil ? toast : "";
-            bossBar.SetActive(game.AliveBosses > 0 && run.State == RunState.Combat);
-            bossFill.fillAmount = game.BossHealthFraction; bossLabel.text = "THE SIEGEBREAKER";
+            bossBar.SetActive(game.BossInformationVisible && run.State == RunState.Combat);
+            bossFill.fillAmount = game.BossHealthFraction; bossLabel.text = game.BossDisplay;
             pauseButton.gameObject.SetActive(run.State == RunState.Combat);
             soundLabel.text = game.SoundEnabled ? "SND" : "MUTE";
             bool show = run.State != RunState.Combat || game.Paused;
